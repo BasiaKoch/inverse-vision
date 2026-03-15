@@ -1,0 +1,61 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Python environments and packaging artifacts
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+build/
+dist/
+pip-wheel-metadata/
+
+# Test, coverage, and linter caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Editor settings
+.idea/
+.vscode/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Generated outputs
+results/
+artifacts/
+outputs/
+*.log
+
+# Local report build artifacts
+report/*.aux
+report/*.fdb_latexmk
+report/*.fls
+report/*.log
+report/*.out
+report/*.synctex.gz
+report/*.toc
+
+# Course handouts and reference solutions
+practicals/
+Medical_Imaging_Coursework_2026 (1).pdf
+Solution-Practical3-MRI_and_Denoising.pdf
+
+# Private local-only work
+scratch/
+drafts/
+notes-private/
+
+# Optional local-only notes and drafts:
+# Uncomment these only for personal scratch files, not deliverables.
+# *_draft.md
+# *_notes.md
+# notebooks/*_draft.ipynb
