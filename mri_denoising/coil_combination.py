@@ -53,6 +53,37 @@ def normalise_coil_by_noise(
     return coil_magnitude / noise_std
 
 
+def estimate_noise_stds(
+    coil_magnitudes: np.ndarray,
+    coil_axis: int = 0,
+    noise_rows: int = 3,
+) -> np.ndarray:
+    """
+    Estimate one background noise standard deviation per coil.
+
+    Parameters
+    ----------
+    coil_magnitudes : np.ndarray
+        Real-valued magnitude images, coils stacked along coil_axis.
+    coil_axis : int
+        Axis along which coils are stacked.
+    noise_rows : int
+        Number of rows at the image border used to estimate noise std.
+
+    Returns
+    -------
+    np.ndarray
+        One-dimensional array of per-coil noise standard deviations.
+    """
+    n_coils = coil_magnitudes.shape[coil_axis]
+    return np.array(
+        [
+            np.std(np.take(coil_magnitudes, i, axis=coil_axis)[:noise_rows])
+            for i in range(n_coils)
+        ]
+    )
+
+
 def combine_coils_rss(coil_images: np.ndarray, coil_axis: int = 0) -> np.ndarray:
     """
     Combine multi-coil images using Root Sum of Squares (RSS).
@@ -83,6 +114,7 @@ def combine_coils_rss_snr(
     coil_magnitudes: np.ndarray,
     coil_axis: int = 0,
     noise_rows: int = 3,
+    noise_stds: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     SNR-normalised Root Sum of Squares coil combination.
@@ -105,6 +137,11 @@ def combine_coils_rss_snr(
         Axis along which coils are stacked.
     noise_rows : int
         Number of rows at the image border used to estimate noise std.
+    noise_stds : np.ndarray | None
+        Optional fixed per-coil noise standard deviations. When provided,
+        these are used instead of re-estimating noise from ``coil_magnitudes``.
+        This is useful when combining denoised coil images while preserving
+        the original intensity scaling.
 
     Returns
     -------
@@ -112,11 +149,25 @@ def combine_coils_rss_snr(
         SNR-weighted combined image, shape (rows, cols).
     """
     n_coils = coil_magnitudes.shape[coil_axis]
+    if noise_stds is None:
+        noise_stds = estimate_noise_stds(
+            coil_magnitudes,
+            coil_axis=coil_axis,
+            noise_rows=noise_rows,
+        )
+    else:
+        noise_stds = np.asarray(noise_stds)
+        if noise_stds.shape != (n_coils,):
+            raise ValueError(
+                f"noise_stds must have shape ({n_coils},), got {noise_stds.shape}"
+            )
+
     normalised = np.stack(
         [
-            normalise_coil_by_noise(
-                np.take(coil_magnitudes, i, axis=coil_axis),
-                noise_rows=noise_rows,
+            (
+                np.take(coil_magnitudes, i, axis=coil_axis) / noise_stds[i]
+                if noise_stds[i] != 0
+                else np.take(coil_magnitudes, i, axis=coil_axis).copy()
             )
             for i in range(n_coils)
         ],

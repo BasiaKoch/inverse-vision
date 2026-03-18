@@ -5,9 +5,10 @@ The standard reconstruction is a direct 2D inverse FFT:
 
     image = np.fft.ifft2(kspace)
 
-This matches the convention used in the course practicals. The k-space
-data (knee.npy) is stored with the DC component at position (0,0), which
-is the native NumPy FFT convention. No fftshift is required before ifft2.
+This matches the convention used in the course practicals when the input
+k-space already follows NumPy FFT ordering. For the coursework dataset
+(``knee.npy``), the bright low-frequency content is stored at the centre
+of the array, so ``ifftshift`` is required before ``ifft2``.
 
 fftshift note
 -------------
@@ -18,9 +19,9 @@ Two orderings appear in the literature and are NOT equivalent:
     np.fft.ifft2(np.fft.fftshift(kspace))   # shift k-space then reconstruct
 
 The first is a display convenience; the second changes the reconstruction
-result by introducing a linear phase ramp. This module uses neither —
-reconstruction is the plain ifft2, keeping the result consistent with the
-course solution notebook.
+result by introducing a linear phase ramp. This module provides both
+variants explicitly: ``kspace_to_image`` for NumPy-order k-space and
+``kspace_to_image_centred`` for centred k-space such as ``knee.npy``.
 """
 
 import numpy as np
