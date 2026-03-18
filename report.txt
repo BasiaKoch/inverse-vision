@@ -8,7 +8,6 @@
 \usepackage{multirow}
 \usepackage{caption}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
-\usepackage[section]{placeins}
 \captionsetup{font=small,labelfont=bf}
 
 % ── figures live in notebooks/report_figures/ ──────────────────────────────
@@ -22,34 +21,18 @@
 \date{}
 
 \begin{document}
-\maketitle\vspace{-1em}
+\maketitle\vspace{-2em}
 
 % ═══════════════════════════════════════════════════════════════════════════
-\begin{abstract}
-\noindent
-Three CT reconstruction experiments are reported.
-Exercise~1.1 evaluates FBP and gradient-descent (GD) reconstruction across
-$3\times3$ dose/view conditions ($I_0\in\{10^5,10^3,10^2\}$; 360, 90, 20 angles).
-Exercise~1.2 studies limited-angle artefacts at 180°, 120°, and 40° scan
-ranges with 360 views each, grounding observations in the Fourier Slice Theorem.
-Exercise~1.3 compares Ram-Lak, Shepp-Logan, and Hamming FBP filters on a
-low-dose sinogram, and evaluates mini-batch (subset) Landweber GD against
-full-batch GD, with a discussion of why MLEM/OSEM is preferred in PET while
-SIRT-like methods dominate CT.
-GD consistently outperforms FBP under degraded acquisition; subset GD
-provides faster early convergence at the cost of step-size sensitivity.
-\end{abstract}
 
 % ═══════════════════════════════════════════════════════════════════════════
 \section{Exercise 1.1 — Effect of Dose and View Count}
 
-\paragraph{Setup.}
+
 Combined Gaussian ($\sigma{=}0.05$ counts) and Poisson noise at
-$I_0\in\{10^5,10^3,10^2\}$; 360, 90, and 20 projection angles over
-$[0°,180°)$; 256$\times$256 phantom.
-FBP uses a ramp filter; GD uses 200 Landweber iterations
-($\gamma{=}0.001$, non-negativity constraint).
-Metrics computed inside the reconstruction circle.
+$I_0\in\{10^5,10^3,10^2\}$; 360, 90, and 20 projection angles over. First I have added the Gaussian noise, and later combined with a Poisson noise. FBP uses a ramp filter; GD uses 200 iterations
+($\gamma{=}0.001$, non-negativity constraint). Sinograms below clearly visualize how restricting the dose an downgrading the projection angle makes the sinograms more blurry. 
+
 
 \begin{figure}[h!]
 \centering
@@ -63,7 +46,12 @@ Metrics computed inside the reconstruction circle.
 \label{fig:ex11_sino}
 \end{figure}
 
+\paragraph{Reconstruction methods: FBP vs Gradient Descent}
+
+FBP is an analytical inversion of the Radon transform using a high-pass filter, making it fast and accurate under ideal conditions but highly sensitive to noise and undersampling due to high-frequency amplification. In contrast, Gradient Descent (GD) is an iterative method that minimises $\|Ax - b\|^2$, allowing  refinement and improved robustness to noise. In this experiment I have tested their performance on earlier created sinograms.  
+
 \subsection*{Results}
+
 
 \begin{table}[h!]
 \centering
@@ -102,41 +90,50 @@ $I_0$ & Method & PSNR & SSIM & PSNR & SSIM & PSNR & SSIM\\
 \label{fig:ex11_recon}
 \end{figure}
 
-\begin{figure}[h!]
-\centering
-\includegraphics[width=\linewidth]{exercise_1_1/metrics_heatmap.png}
-\caption{PSNR (top) and SSIM (bottom) across all $3{\times}3$ conditions for
-  FBP (left) and GD (right). Each cell shows the value at that
-  dose/view combination; colour encodes quality (green = good, red = poor).
-  GD's heatmap is uniformly greener; FBP's bottom-right corner collapses
-  to near-zero or negative PSNR.}
-\label{fig:ex11_heatmap}
-\end{figure}
 
 \subsection*{Key findings}
 \begin{itemize}\setlength\itemsep{0pt}
-  \item \textbf{FBP is highly dose-sensitive}: PSNR drops 26~dB from
-        $I_0{=}10^5$ to $I_0{=}10^2$ at 360 views
-        (Figure~\ref{fig:ex11_heatmap}, left column).
-        GD drops only $\sim$9~dB over the same range.
-  \item \textbf{GD dominates at $I_0{\leq}10^3$}: at every view count,
-        GD leads FBP by 8–17~dB PSNR at medium dose and 4–17~dB at low dose
-        (Table~\ref{tab:ex11}).
-  \item \textbf{FBP competitive only at high dose, dense sampling}:
-        $I_0{=}10^5$, 360 views — FBP 38.8~dB vs.\ GD 32.8~dB.
-  \item \textbf{Sparse views are catastrophic for FBP at low dose}:
-        $I_0{=}10^2$, 20 views: FBP PSNR $-0.41$~dB (below a blank image);
-        GD retains 16.9~dB — the image remains clinically interpretable
-        (Figure~\ref{fig:ex11_recon}, bottom row).
+
+  \item \textbf{Performance across dose and sampling}: FBP achieves the
+        highest quality only under ideal conditions ($I_0{=}10^5$, 360 views:
+        38.8~dB, SSIM 0.96). However, its performance degrades rapidly with
+        noise and undersampling: at 360 views PSNR drops by 26.5~dB from
+        $I_0{=}10^5$ to $I_0{=}10^2$. In contrast, GD degrades more gradually
+        (32.8$\rightarrow$23.5~dB, $\sim$9~dB), demonstrating significantly
+        greater robustness.
+
+  \item \textbf{When each method performs better}: FBP performs best in
+        high-dose, densely sampled regimes where the inversion assumptions
+        are satisfied. GD outperforms FBP in all low-dose ($I_0{\leq}10^3$)
+        and sparse-view (90 and 20 views) cases, with consistent gains of
+        7--17~dB PSNR and substantially higher SSIM, indicating improved
+        structural fidelity.
+
+  \item \textbf{Error characteristics}: Error maps show that FBP amplifies
+        high-frequency noise and produces strong streak artefacts under
+        degraded acquisition, particularly at low dose and sparse views.
+        GD reduces these artefacts and preserves global structure, although
+        some smoothing is introduced. The divergence between PSNR and SSIM
+        confirms that GD maintains perceptually meaningful structure even
+        when pixel-wise errors remain non-negligible.
+
+  \item \textbf{Interaction of dose and view count}: Low dose and sparse
+        sampling interact multiplicatively for FBP: at $I_0{=}10^2$, 20 views,
+        PSNR collapses to $-0.41$~dB, indicating complete loss of diagnostic
+        content. GD remains stable (16.9~dB), showing that iterative methods
+        can partially compensate for both noise and undersampling.
+
+  \item \textbf{Clinical implications}: Reducing $I_0$ lowers radiation dose
+        but increases noise, while reducing projection count shortens scan
+        time but introduces undersampling artefacts. FBP therefore requires
+        high-dose, full-angle acquisitions to produce diagnostically reliable
+        images. In contrast, GD enables clinically usable reconstructions at
+        lower dose and fewer views, supporting dose reduction strategies
+        (e.g.\ paediatric imaging) and faster acquisitions (e.g.\ trauma),
+        at the cost of increased computational time.
+
 \end{itemize}
 
-\subsection*{Clinical implications}
-Dose reduction directly reduces patient radiation risk, but FBP requires
-high-dose, high-view acquisitions to produce diagnostically useful images.
-Iterative reconstruction enables 30–60\% dose reduction at equivalent
-image quality — now standard in clinical scanners (ASIR, SAFIRE, AIDR).
-Sparse-view acquisition reduces scan time, benefiting paediatric patients
-and trauma cases where breath-hold compliance is limited.
 
 \subsection*{Methods to improve image quality}
 \begin{enumerate}\setlength\itemsep{0pt}
@@ -151,7 +148,6 @@ and trauma cases where breath-hold compliance is limited.
 \end{enumerate}
 
 % ═══════════════════════════════════════════════════════════════════════════
-\FloatBarrier
 \section{Exercise 1.2 — Limited-Angle Tomography}
 
 \subsection*{Aim}
@@ -335,7 +331,6 @@ The worst reconstructions occur when limited-angle geometry and low dose combine
 at 40°, $I_0{=}10^2$, even GD is severely degraded (18.6~dB PSNR, SSIM 0.335).
 
 % ═══════════════════════════════════════════════════════════════════════════
-\FloatBarrier
 \section{Exercise 1.3 — Reconstruction Methods}
 
 This section investigates two extensions of the Exercise~1.1 pipeline on the
