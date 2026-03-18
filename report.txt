@@ -8,6 +8,7 @@
 \usepackage{multirow}
 \usepackage{caption}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage[section]{placeins}
 \captionsetup{font=small,labelfont=bf}
 
 % ── figures live in notebooks/report_figures/ ──────────────────────────────
@@ -28,13 +29,15 @@
 \noindent
 Three CT reconstruction experiments are reported.
 Exercise~1.1 evaluates FBP and gradient-descent (GD) reconstruction across
-$3\times3$ dose/view conditions.
+$3\times3$ dose/view conditions ($I_0\in\{10^5,10^3,10^2\}$; 360, 90, 20 angles).
 Exercise~1.2 studies limited-angle artefacts at 180°, 120°, and 40° scan
-ranges with 360 views each.
-Exercise~1.3 compares three FBP filters and full-batch vs.\ mini-batch GD
-on a low-dose sinogram.
-In all cases GD outperforms FBP under degraded acquisition, and subset GD
-offers faster early convergence at the cost of step-size sensitivity.
+ranges with 360 views each, grounding observations in the Fourier Slice Theorem.
+Exercise~1.3 compares Ram-Lak, Shepp-Logan, and Hamming FBP filters on a
+low-dose sinogram, and evaluates mini-batch (subset) Landweber GD against
+full-batch GD, with a discussion of why MLEM/OSEM is preferred in PET while
+SIRT-like methods dominate CT.
+GD consistently outperforms FBP under degraded acquisition; subset GD
+provides faster early convergence at the cost of step-size sensitivity.
 \end{abstract}
 
 % ═══════════════════════════════════════════════════════════════════════════
@@ -47,6 +50,18 @@ $[0°,180°)$; 256$\times$256 phantom.
 FBP uses a ramp filter; GD uses 200 Landweber iterations
 ($\gamma{=}0.001$, non-negativity constraint).
 Metrics computed inside the reconstruction circle.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth]{exercise_1_1/figure3_noisy_sinograms_clean.png}
+\caption{Noisy sinograms across all 9 acquisition conditions
+  (rows: $I_0{=}10^5,10^3,10^2$; columns: 360, 90, 20 projection angles).
+  Reducing $I_0$ increases pixel-level noise visible within each sinogram.
+  Reducing the number of views compresses the sinogram horizontally —
+  fewer projection directions are sampled, reducing the information
+  available for reconstruction before any algorithm is applied.}
+\label{fig:ex11_sino}
+\end{figure}
 
 \subsection*{Results}
 
@@ -74,28 +89,45 @@ $I_0$ & Method & PSNR & SSIM & PSNR & SSIM & PSNR & SSIM\\
 \end{tabular}
 \end{table}
 
-% ── Figure: export from exercise_1.1.ipynb cell-recon-poisson ──────────────
-% Suggested: one 3-row figure (360/90/20 views) at I0=1e2 showing
-%            FBP | FBP error | GD | GD error
-% \begin{figure}[h!]
-% \centering
-% \includegraphics[width=\linewidth]{exercise_1_1/recon_I0_1e2.png}
-% \caption{Reconstructions at $I_0{=}10^2$ (low dose). Rows: 360, 90, 20 views.
-%   FBP at 20 views is dominated by noise; GD remains interpretable.}
-% \label{fig:ex11_recon}
-% \end{figure}
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth]{exercise_1_1/recon_I0_1e2.png}
+\caption{Reconstructions and absolute errors at $I_0{=}10^2$ (low dose).
+  Rows: 360, 90, 20 views. Columns: FBP $|$ FBP error $|$ GD $|$ GD error.
+  Shared grayscale and absolute-error colour scales across all panels.
+  PSNR values are inset on each reconstruction.
+  At 360 views FBP retains coarse structure (12.3~dB) but GD is visibly
+  cleaner (23.5~dB). At 20 views FBP ($-0.41$~dB) is entirely dominated
+  by noise and streak artefacts; GD (16.9~dB) remains interpretable.}
+\label{fig:ex11_recon}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth]{exercise_1_1/metrics_heatmap.png}
+\caption{PSNR (top) and SSIM (bottom) across all $3{\times}3$ conditions for
+  FBP (left) and GD (right). Each cell shows the value at that
+  dose/view combination; colour encodes quality (green = good, red = poor).
+  GD's heatmap is uniformly greener; FBP's bottom-right corner collapses
+  to near-zero or negative PSNR.}
+\label{fig:ex11_heatmap}
+\end{figure}
 
 \subsection*{Key findings}
 \begin{itemize}\setlength\itemsep{0pt}
-  \item \textbf{FBP is sensitive to dose}: PSNR drops 26~dB from $I_0{=}10^5$
-        to $I_0{=}10^2$ at 360 views. GD drops only $\sim$9~dB.
-  \item \textbf{GD dominates below $I_0{=}10^3$}: at every view count,
-        GD leads FBP by 8–17~dB PSNR at medium dose and by 4–17~dB at
-        low dose.
+  \item \textbf{FBP is highly dose-sensitive}: PSNR drops 26~dB from
+        $I_0{=}10^5$ to $I_0{=}10^2$ at 360 views
+        (Figure~\ref{fig:ex11_heatmap}, left column).
+        GD drops only $\sim$9~dB over the same range.
+  \item \textbf{GD dominates at $I_0{\leq}10^3$}: at every view count,
+        GD leads FBP by 8–17~dB PSNR at medium dose and 4–17~dB at low dose
+        (Table~\ref{tab:ex11}).
   \item \textbf{FBP competitive only at high dose, dense sampling}:
-        $I_0{=}10^5$, 360 views — FBP PSNR 38.8 vs.\ GD 32.8~dB.
-  \item \textbf{Sparse views affect FBP catastrophically at low dose}:
-        $I_0{=}10^2$, 20 views gives FBP PSNR $-0.41$~dB (worse than a blank image).
+        $I_0{=}10^5$, 360 views — FBP 38.8~dB vs.\ GD 32.8~dB.
+  \item \textbf{Sparse views are catastrophic for FBP at low dose}:
+        $I_0{=}10^2$, 20 views: FBP PSNR $-0.41$~dB (below a blank image);
+        GD retains 16.9~dB — the image remains clinically interpretable
+        (Figure~\ref{fig:ex11_recon}, bottom row).
 \end{itemize}
 
 \subsection*{Clinical implications}
@@ -119,19 +151,85 @@ and trauma cases where breath-hold compliance is limited.
 \end{enumerate}
 
 % ═══════════════════════════════════════════════════════════════════════════
-\section{Exercise 1.2 — Limited Angle Tomography}
+\FloatBarrier
+\section{Exercise 1.2 — Limited-Angle Tomography}
 
-\paragraph{Setup.}
-Same noise model and dose levels as Exercise~1.1.
-Angular range varied: 180°, 120°, 40°; \textbf{360 views in all cases}
-(uniform spacing over the measured arc), isolating span from count effects.
+\subsection*{Aim}
+This section studies how incomplete angular coverage degrades CT reconstruction
+under the same noise and dose conditions as Exercise~1.1.
+The angular range is varied to 180°, 120°, and 40° to isolate the effect of
+missing directional data from the view-count and dose effects studied previously.
 
-\subsection*{Results}
+\subsection*{Experimental setup}
+The same 256$\times$256 phantom and circular evaluation mask are used.
+Three angular ranges are tested — 180°, 120°, and 40° — each with
+\textbf{360 uniformly spaced projections} over the measured arc.
+Fixing the view count at 360 isolates the effect of angular \emph{span}
+from the number-of-projections effect: only the directions measured change,
+not how densely they are sampled.
+The same combined Gaussian+Poisson noise model applies at
+$I_0\in\{10^5,10^3,10^2\}$ photons.
+Both FBP (ramp filter) and GD (200 iterations, $\gamma{=}0.001$) are evaluated.
+In parallel-beam CT, 180° provides complete angular coverage; 120° and 40°
+therefore represent incomplete limited-angle acquisitions.
+
+\subsection*{Limited-angle sinograms}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth]{exercise_1_2/noisy_sinograms.png}
+\caption{Noisy sinograms for all 9 conditions (rows: $I_0{=}10^5,10^3,10^2$;
+  columns: 180°, 120°, 40°; 360 projections in each case).
+  The horizontal axis is the projection index; reducing the angular range
+  compresses the sinogram horizontally — the 40° sinogram spans only
+  22\% of the angular coverage of the 180° case.
+  Within each row, lower $I_0$ visibly increases pixel-level noise.
+  Structural information is lost before reconstruction even begins.}
+\label{fig:ex12_sino}
+\end{figure}
+
+Reducing the angular range shrinks the span of measured projection directions:
+a 40° sinogram covers only 22\% of the directions available at 180°.
+This directional loss is directly visible in Figure~\ref{fig:ex12_sino} —
+many structural orientations of the phantom are simply never sampled,
+regardless of how densely the remaining arc is covered.
+
+\subsection*{Reconstruction results}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth]{exercise_1_2/recon_I0_1e5.png}
+\caption{Reconstructions and absolute errors at $I_0{=}10^5$, 360 views
+  (rows: 180°, 120°, 40°; columns: FBP $|$ FBP error $|$ GD $|$ GD error;
+  shared grayscale and shared absolute-error colour scale across all panels).
+  At 180° both methods perform well.
+  At 120° directional artefacts appear: edges perpendicular to the missing
+  directions lose contrast and FBP shows increased streak noise.
+  At 40° severe elongation and blurring dominate the reconstruction;
+  GD is more robust but cannot recover content in the missing wedge.}
+\label{fig:ex12_recon}
+\end{figure}
+
+Figure~\ref{fig:ex12_recon} shows the visual effect of the missing wedge
+progressing from 180° to 40°.
+At 180°, reconstructions match the Exercise~1.1 full-angle baseline.
+At 120°, directional artefacts become visible: structures oriented
+perpendicular to the missing directions lose contrast and sharpness,
+and FBP produces streak noise not present at full coverage.
+At 40°, the dominant feature is severe elongation perpendicular to the scan
+arc; most image structure is distorted and the error maps show large, spatially
+coherent errors rather than the uniform noise seen at 180°.
+FBP artefacts are consistently stronger than GD across all rows; GD
+suppresses missing-wedge elongation partly but cannot recover
+information that was never acquired.
+
+\subsection*{Quantitative comparison}
 
 \begin{table}[h!]
 \centering
-\caption{PSNR (dB) / SSIM for limited-angle reconstructions.
-  Metrics collapse rapidly as the scan arc narrows, especially for FBP.}
+\caption{PSNR (dB) / SSIM for limited-angle reconstructions (360 views each).
+  Performance degrades strongly as the scan arc narrows;
+  low dose and limited angle interact additively.}
 \label{tab:ex12}
 \small
 \begin{tabular}{llcccccc}
@@ -140,69 +238,128 @@ Angular range varied: 180°, 120°, 40°; \textbf{360 views in all cases}
 \cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
 $I_0$ & Method & PSNR & SSIM & PSNR & SSIM & PSNR & SSIM\\
 \midrule
-\multirow{2}{*}{$10^5$} & FBP & 37.14 & 0.931 & 21.40 & 0.518 & 13.70 & 0.233\\
-                        & GD  & 32.70 & 0.926 & 24.27 & 0.748 & 19.29 & 0.513\\
+\multirow{2}{*}{$10^5$} & FBP & 38.81 & 0.960 & 21.47 & 0.540 & 13.77 & 0.245\\
+                        & GD  & 32.75 & 0.928 & 24.27 & 0.750 & 19.30 & 0.517\\
 \midrule
-\multirow{2}{*}{$10^3$} & FBP & 19.30 & 0.335 & 16.13 & 0.249 & 10.74 & 0.169\\
-                        & GD  & 28.61 & 0.702 & 23.17 & 0.576 & 18.78 & 0.357\\
+\multirow{2}{*}{$10^3$} & FBP & 22.38 & 0.422 & 18.94 & 0.313 & 13.31 & 0.199\\
+                        & GD  & 30.08 & 0.777 & 23.85 & 0.659 & 19.22 & 0.475\\
 \midrule
-\multirow{2}{*}{$10^2$} & FBP & 9.27  & 0.183 & 7.31  & 0.169 & 3.26  & 0.153\\
-                        & GD  & 21.21 & 0.403 & 18.88 & 0.350 & 16.23 & 0.228\\
+\multirow{2}{*}{$10^2$} & FBP & 12.28 & 0.210 & 11.86 & 0.197 & 10.46 & 0.168\\
+                        & GD  & 23.48 & 0.481 & 21.30 & 0.442 & 18.60 & 0.335\\
 \bottomrule
 \end{tabular}
 \end{table}
 
-% ── Figure: export from exercise_1.2.ipynb (one dose level, three angles) ──
-% Suggested: I0=1e5, rows: 180°/120°/40°, cols: FBP | FBP error | GD | GD error
-% \begin{figure}[h!]
-% \centering
-% \includegraphics[width=\linewidth]{exercise_1_2/recon_I0_1e5.png}
-% \caption{Limited-angle reconstructions at $I_0{=}10^5$, 360 views.
-%   The 40° case shows severe elongation artefacts along the missing-wedge
-%   direction; edges whose normals lie outside the scan arc are absent.}
-% \label{fig:ex12_recon}
-% \end{figure}
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth]{exercise_1_2/metrics_vs_angle.png}
+\caption{MSE (log), PSNR, and SSIM versus angular range for FBP (top row)
+  and GD (bottom row) at all three dose levels.
+  All metrics degrade monotonically as the angular range narrows.
+  GD outperforms FBP at every angle and dose.
+  The $I_0{=}10^2$ curve (red) lies furthest from the others at all ranges,
+  confirming that low dose and limited angle interact additively.}
+\label{fig:ex12_metrics}
+\end{figure}
 
-\subsection*{Mathematical principle}
-By the \textbf{Fourier Slice Theorem}:
+Three trends are visible in Table~\ref{tab:ex12} and Figure~\ref{fig:ex12_metrics}:
+\begin{itemize}\setlength\itemsep{0pt}
+  \item \textbf{Monotonic degradation with angular range}: every metric worsens
+        as the scan arc shrinks from 180° to 120° to 40°, for both methods
+        and all dose levels.
+  \item \textbf{Growing GD advantage at smaller angles}: at 120°, $I_0{=}10^5$,
+        GD leads FBP by 2.8~dB PSNR and 0.21 SSIM.
+        At 40°, GD retains 19.3~dB vs FBP's 13.8~dB ($I_0{=}10^5$) and
+        18.6~dB vs 10.5~dB ($I_0{=}10^2$) — the gap widens as the
+        missing wedge grows, because FBP amplifies the missing-data
+        inconsistency through the ramp filter while GD partially suppresses it.
+  \item \textbf{Additive interaction of limited angle and low dose}:
+        the worst case is 40°, $I_0{=}10^2$ — both methods are severely
+        degraded, but GD retains 8.1~dB more PSNR than FBP.
+\end{itemize}
+
+\subsection*{Why limited-angle tomography fails}
+
+The governing principle is the \textbf{Fourier Slice Theorem}:
 \[
   \mathcal{F}_1\{p_\theta\}(\xi) = \mathcal{F}_2\{f\}(\xi\cos\theta,\,\xi\sin\theta)
 \]
-each projection at angle $\theta$ samples one radial line of the 2D Fourier
-transform. A limited arc $[0°,\alpha]$ leaves a \textit{missing wedge}
-$(\alpha,180°)$ unsampled.
-\medskip
+Each projection at angle $\theta$ samples one radial line through the origin
+of the 2D Fourier transform. Restricting measurement to a limited arc
+$[0°,\alpha]$ leaves a wedge-shaped region of Fourier space — the
+\textit{missing wedge} $(\alpha,180°)$ — entirely unsampled.
 
-\noindent\textbf{Edge visibility criterion:} an edge is reconstructible
-\textit{if and only if its outward normal lies within the measured angular range}.
-Edges whose normals fall in the missing wedge are absent or severely blurred,
-causing the characteristic directional elongation seen at 40°.
+Edge visibility in limited-angle CT depends on whether the scan includes
+projection directions that sample the edge normal.
+Edges whose normal directions fall inside the measured angular range are
+reconstructed more reliably, whereas edges associated with missing directions
+are blurred or may disappear.
+This produces the characteristic directional blurring and elongation artefacts
+of limited-angle tomography: at 40°, structures oriented perpendicular to the
+narrow measured arc appear severely elongated.
 
-\subsection*{Key findings}
-\begin{itemize}\setlength\itemsep{0pt}
-  \item At 40°, FBP PSNR falls to 3.3~dB ($I_0{=}10^2$); GD retains 16.2~dB —
-        angular incompleteness and low dose interact additively.
-  \item 120° already loses one-third of Fourier space; FBP PSNR drops 16~dB
-        vs.\ 180° at $I_0{=}10^5$.
-  \item GD consistently outperforms FBP at all limited angles by 5–12~dB;
-        neither recovers the missing-wedge content without regularisation.
-\end{itemize}
+\subsection*{Comparison with Exercise 1.1}
+
+In Exercise~1.1, degradation arose from two sources: reduced photon count
+(low $I_0$) and fewer projection angles (sparse views).
+Here, even with 360 projections, image quality degrades strongly when angular
+\emph{coverage} is incomplete — confirming that the missing-angle effect is
+distinct from sparse-view sampling.
+Critically, limited-angle artefacts are directional and cannot be removed
+simply by increasing view density within the same restricted arc: adding more
+projections at 40° would improve angular sampling within that arc but leave
+the missing wedge entirely unchanged.
+The only remedy is to either extend the angular range or apply regularisation
+that imposes prior assumptions about missing content.
+
+\subsection*{Clinical relevance}
+
+Limited-angle geometries arise in settings where full 180° rotation is
+physically constrained: image-guided surgery (robotic arm in the scan path)
+and Digital Breast Tomosynthesis (DBT, typically 15–50°).
+These configurations reduce hardware complexity and dose at the cost of
+directional blur and incomplete structural recovery.
+Iterative reconstruction with TV or L1 regularisation is preferred in
+clinical limited-angle systems precisely because it can partially compensate
+for missing-wedge content, whereas FBP has no such mechanism.
+
+\subsection*{Conclusion}
+Reducing angular coverage from 180° to 120° and 40° causes strong degradation
+even when the projection count is held fixed at 360.
+The dominant effect is missing directional information, described by the missing
+wedge in Fourier space, producing anisotropic blurring not present in
+Exercise~1.1's sparse-view experiments.
+GD is more robust than FBP under all limited-angle conditions, but neither
+method can recover information that was never measured.
+The worst reconstructions occur when limited-angle geometry and low dose combine:
+at 40°, $I_0{=}10^2$, even GD is severely degraded (18.6~dB PSNR, SSIM 0.335).
 
 % ═══════════════════════════════════════════════════════════════════════════
-\section{Exercise 1.3 — FBP Filters and Subset Gradient Descent}
+\FloatBarrier
+\section{Exercise 1.3 — Reconstruction Methods}
 
-\paragraph{Setup.}
-Low-dose case from Exercise~1.1: $I_0{=}10^2$, 360 views, combined noise.
-Part~(b): three FBP filters. Part~(c): full-batch vs.\ mini-batch Landweber
-(10 interleaved subsets, 100 epochs, $\gamma{=}0.001$).
+This section investigates two extensions of the Exercise~1.1 pipeline on the
+low-dose case $I_0{=}10^2$, 360 views (combined Gaussian+Poisson noise,
+$\sigma{=}0.05$): Part~(b) compares three FBP filters to examine the
+noise–resolution trade-off; Part~(c) implements subset gradient descent
+(mini-batch Landweber / OS-SART-style) and compares it to full-batch GD,
+characterising both long-run quality and early-convergence behaviour.
 
 % ═══════ Part (b) ═══════════════════════════════════════════════════════════
-\subsection*{Part (b): FBP filter comparison}
+\subsection*{Part (b): Alternative FBP filters}
+
+\subsubsection*{Method}
+The ramp (Ram-Lak) filter implements exact inversion of the Radon transform,
+amplifying noise proportional to $|\xi|$.
+Windowed alternatives suppress high frequencies: Shepp-Logan multiplies by
+$\mathrm{sinc}(\xi/2\xi_c)$; Hamming by $0.54+0.46\cos(\pi\xi/\xi_c)$.
+All three filters are applied to the same noisy sinogram for a fair comparison.
+
+\subsubsection*{Results}
 
 \begin{table}[h!]
 \centering
-\caption{FBP filter metrics on the $I_0{=}10^2$, 360-view sinogram.
-  Hamming scores best because noise suppression dominates at low dose.}
+\caption{FBP filter metrics ($I_0{=}10^2$, 360 views, inside reconstruction circle).}
 \label{tab:ex13b}
 \small
 \begin{tabular}{lccc}
@@ -219,29 +376,56 @@ Hamming        & 0.0080 & 20.01 & 0.337 \\
 \begin{figure}[h!]
 \centering
 \includegraphics[width=\linewidth]{exercise_1_3/exercise_1_3b_filter_comparison.png}
-\caption{FBP filter comparison at $I_0{=}10^2$.
-  Ramp amplifies noise most; Hamming suppresses streaks at the cost of
-  edge blurring. Filter choice is a noise–resolution trade-off.}
-\label{fig:ex13b}
+\caption{FBP reconstructions and absolute errors at $I_0{=}10^2$, using a shared
+  grayscale and shared error scale across all three filters.
+  Ramp: severe streak noise throughout.
+  Shepp-Logan: streaks reduced, mild blurring.
+  Hamming: noise strongly suppressed, fine structure softened.}
+\label{fig:ex13b_recon}
 \end{figure}
 
-\noindent The 8~dB PSNR gain of Hamming over ramp is specific to this
-high-noise regime; at $I_0{=}10^5$ the ramp leads. No filter universally
-dominates: preference depends on the noise level and diagnostic task.
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth]{exercise_1_3/exercise_1_3b_filter_metrics.png}
+\caption{Filter metrics across all dose levels from Exercise~1.1.
+  Hamming is best at $I_0{=}10^2$ (noise-limited); ramp is best at
+  $I_0{=}10^5$ (resolution-limited). Filter ranking inverts with dose.}
+\label{fig:ex13b_metrics}
+\end{figure}
+
+\subsubsection*{Discussion}
+The ramp filter produces sharp edges but amplifies streak noise severely at low dose.
+Hamming's aggressive rolloff suppresses noise at the cost of blurring —
+it gains 7.7~dB PSNR over ramp at $I_0{=}10^2$ but would lose resolution at
+high dose. Shepp-Logan sits between the two in every metric.
+No filter is universally optimal: the best choice depends on dose level and
+whether the clinical task prioritises resolution or noise suppression.
 
 % ═══════ Part (c) ═══════════════════════════════════════════════════════════
-\subsection*{Part (c): Full-batch vs.\ subset gradient descent}
+\subsection*{Part (c): Subset GD vs.\ full-batch GD}
 
-The iterative solver uses the Landweber update
-$x^{k+1} = x^k - \gamma\,B(Ax^k - b)$
-where $B{=}\mathrm{iradon}(\cdot,\text{filter}=\mathrm{None})$ approximates $A^T$.
-This is \textit{not} true SIRT (no row/column normalisation matrices).
-Subset GD applies the same update to 10 interleaved angle subsets per epoch.
+\subsubsection*{Method}
+Full-batch GD updates the image using all projections at each step:
+\[
+  x^{k+1} = x^k - \gamma\,B(Ax^k - b)
+\]
+Subset GD splits the $N{=}360$ projections into $S{=}10$ interleaved subsets
+of 36 angles each, and applies one update per subset per epoch:
+\[
+  x \leftarrow x - \gamma\,B_s(A_s x - b_s), \quad s = 1,\ldots,S
+\]
+where $B_s {=} \mathrm{iradon}(\cdot,\theta_s,\text{filter}{=}\mathrm{None})$.
+\textit{This is subset gradient descent / mini-batch Landweber — not true
+OS-SART, which additionally applies diagonal row and column normalisation
+matrices $R$ and $C$.}
+
+\subsubsection*{Main comparison (final reconstruction quality)}
 
 \begin{table}[h!]
 \centering
-\caption{Main iterative comparison (100 epochs, $I_0{=}10^2$).
-  Matched per-epoch scale ($\gamma/S{=}0.0001$) gives identical final quality.}
+\caption{Long-run results (100 epochs, $I_0{=}10^2$).
+  With $\gamma_{\mathrm{sub}}{=}\gamma/S$, both methods apply the same total
+  update per epoch and converge to the same noise-limited fixed point.}
 \label{tab:ex13c_main}
 \small
 \begin{tabular}{lccc}
@@ -256,33 +440,109 @@ Subset GD, $\gamma/S{=}0.0001$, $S{=}10$ & 0.00207 & 25.87 & 0.5639 \\
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=\linewidth]{exercise_1_3/exercise_1_3c_convergence.png}
-\caption{Per-epoch convergence (matched $\gamma/S$ scale). Both curves
-  overlap, confirming equal convergence rates when per-epoch update scales
-  are matched.}
-\label{fig:ex13c_conv}
+\includegraphics[width=\linewidth]{exercise_1_3/exercise_1_3c_main_reconstructions.png}
+\caption{Final reconstructions at 100 epochs ($I_0{=}10^2$).
+  Full-batch GD ($\gamma{=}0.001$) and subset GD ($\gamma/S{=}0.0001$)
+  are visually and metrically indistinguishable: same per-epoch update
+  scale $\Rightarrow$ same final solution.}
+\label{fig:ex13c_recon}
 \end{figure}
+
+\subsubsection*{Convergence behaviour}
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.85\linewidth]{exercise_1_3/exercise_1_3c_gamma_sensitivity.png}
+\includegraphics[width=\linewidth]{exercise_1_3/exercise_1_3c_convergence.png}
+\caption{Per-epoch MSE convergence (matched $\gamma/S{=}0.0001$, 100 epochs).
+  Both curves overlap throughout: when per-epoch gradient magnitude is
+  equalised, full-batch and subset GD converge at the same rate.}
+\label{fig:ex13c_conv}
+\end{figure}
+
+\subsubsection*{Early-convergence advantage}
+
+The main comparison deliberately removes the speed advantage of mini-batches
+by matching per-epoch step size. To reveal the true benefit, we fix the same
+per-sub-step $\gamma{=}0.001$ for both methods and stop at 10 epochs.
+In 10 epochs, subset GD executes $10{\times}10{=}100$ sub-steps (same total
+angle-pair count as 100 full-batch steps); full-batch GD executes only 10 steps.
+
+\begin{table}[h!]
+\centering
+\caption{Early-convergence comparison: 10 epochs, same per-sub-step
+  $\gamma{=}0.001$.  Subset GD achieves the same quality as 100 full-batch
+  epochs — a 5.2~dB gain at identical arithmetic cost.
+  This demonstrates classical ordered-subsets acceleration.}
+\label{tab:ex13c_early}
+\small
+\begin{tabular}{lcc}
+\toprule
+Method & PSNR (dB) & SSIM \\
+\midrule
+Full-batch GD, 10 epochs (10 steps)           & 20.67 & 0.4925 \\
+Subset GD,     10 epochs (100 sub-steps)      & \textbf{25.88} & \textbf{0.5646} \\
+Full-batch GD, 100 epochs (reference)         & 25.88 & 0.5643 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection*{Step-size sensitivity}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\linewidth]{exercise_1_3/exercise_1_3c_gamma_sensitivity.png}
 \caption{Subset GD sensitivity to step size ($S{=}10$, 100 epochs).
-  Unscaled $\gamma{=}0.001$ and $\gamma{\times}S$ are unstable;
-  $\gamma/S$ recovers full-batch performance.}
+  Only $\gamma/S{=}0.0001$ is stable.
+  $\gamma/2{=}0.0005$ loses 6.9~dB; unscaled $\gamma{=}0.001$ — stable for
+  full-batch GD — drops to 16.1~dB; $\gamma{\times}S{=}0.01$ collapses to 14.7~dB.
+  Subset GD is significantly more sensitive to step size than full-batch GD
+  because each sub-iteration operates on a smaller, less-conditioned system.}
 \label{fig:ex13c_gamma}
 \end{figure}
 
-\subsection*{Key findings}
-\begin{itemize}\setlength\itemsep{0pt}
-  \item When $\gamma$ is scaled by $1/S$, subset and full-batch GD converge
-        to the same noise-limited solution at the same per-epoch rate.
-  \item \textbf{Early-convergence advantage}: at equal per-sub-step $\gamma{=}0.001$,
-        subset GD completes 100 sub-steps in 10 epochs vs.\ 10 full-batch steps —
-        reaching a better reconstruction earlier (same arithmetic cost).
-  \item \textbf{Stability trade-off}: unscaled $\gamma$ per subset causes
-        oscillation at later epochs; early stopping with unscaled $\gamma$ or
-        long-run with $\gamma/S$ are the two practical choices.
-\end{itemize}
+\subsubsection*{Discussion}
+\textbf{Final quality:} when the per-epoch effective step size is matched
+($\gamma_{\mathrm{sub}}{=}\gamma/S$), subset and full-batch GD converge to
+the same noise-limited solution — no quality gain at 100 epochs.
+
+\textbf{Speed:} with equal per-sub-step $\gamma$, subset GD makes $S{\times}$
+more updates per epoch and reaches equivalent quality $10{\times}$ faster
+(Table~\ref{tab:ex13c_early}).  This is the classical ordered-subsets
+acceleration observed in OS-SART and OSEM.
+
+\textbf{Stability:} subset GD is significantly more sensitive to step size.
+The effective Lipschitz constant per sub-iteration is $S{\times}$ larger,
+shrinking the stable $\gamma$ range by $1/S$.  Full-batch GD is stable at
+$\gamma{=}0.001$; subset GD requires $\gamma/S{=}0.0001$ for the same behaviour.
+Subset GD does not improve final reconstruction quality when the step size
+is matched to full-batch GD; its advantage is faster early convergence,
+at the cost of careful step-size tuning.
+
+% ═══════ Part (d) ═══════════════════════════════════════════════════════════
+\subsection*{Part (d): Why MLEM/OSEM in PET but SIRT-like methods in CT?}
+
+The choice of algorithm is determined by the statistical forward model.
+PET detects discrete photon-coincidence counts: Poisson-distributed small
+integers.  The natural objective is the Poisson log-likelihood
+$\ell(x){=}\sum_i[b_i\log(Ax)_i-(Ax)_i]$,
+whose maximisation yields \textbf{MLEM}.
+Because Poisson variance equals the mean, MLEM implicitly up-weights
+high-count bins and handles near-zero measurements stably.
+\textbf{OSEM} is the ordered-subset accelerated variant — directly analogous
+to the subset GD implemented here — and is the universal clinical PET standard.
+
+CT measurements are log-linearised Beer-Lambert ratios: after
+$p{=}{-}\log(I/I_0)$, the noise is approximately Gaussian with variance
+$\propto 1/I_0$.
+The appropriate objective is the weighted $\ell^2$ residual
+$\|W^{1/2}(Ax-b)\|^2$, whose gradient descent is \textbf{SIRT} when
+diagonal matrices $C,R$ normalise by column and row sums.
+Applying MLEM to CT data is ill-posed: its multiplicative update requires
+strictly positive measurements and cannot represent additive Gaussian noise.
+Applying SIRT to raw PET counts ignores the Poisson variance structure,
+leading to suboptimal noise propagation.
+In both cases, matching the algorithm's implicit likelihood to the actual
+data-generating process is what drives the modality-specific choice.
 
 % ═══════════════════════════════════════════════════════════════════════════
 \section*{Conclusion}
