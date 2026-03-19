@@ -12,7 +12,7 @@ projection operators from scikit-image to avoid storing large matrices.
 """
 
 import numpy as np
-from skimage.transform import radon, iradon
+from skimage.transform import iradon, radon
 
 
 def reconstruct_sirt(

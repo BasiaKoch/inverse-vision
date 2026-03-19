@@ -5,8 +5,8 @@ All plot functions return matplotlib Figure objects so they can be
 shown interactively in notebooks or saved to disk in scripts.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.figure import Figure
 
 

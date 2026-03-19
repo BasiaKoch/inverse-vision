@@ -8,7 +8,7 @@ forward_projection and noise_models for common experiment workflows.
 import numpy as np
 
 from ct_reconstruction.forward_projection import compute_sinogram, make_angles
-from ct_reconstruction.noise_models import add_poisson_noise, add_gaussian_noise
+from ct_reconstruction.noise_models import add_gaussian_noise, add_poisson_noise
 
 
 def simulate_sinogram(

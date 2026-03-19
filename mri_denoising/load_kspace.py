@@ -5,8 +5,9 @@ The MRI dataset (knee.npy) is a 3D complex array of shape
 (n_coils, rows, cols) = (6, 280, 280).
 """
 
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 
 def load_kspace(path: str | Path) -> np.ndarray:

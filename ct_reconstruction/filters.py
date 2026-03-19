@@ -43,7 +43,6 @@ def validate_filter(name: str) -> str:
     normalised = name.lower()
     if normalised not in AVAILABLE_FILTERS:
         raise ValueError(
-            f"Unknown filter '{name}'. "
-            f"Available filters: {', '.join(AVAILABLE_FILTERS)}"
+            f"Unknown filter '{name}'. " f"Available filters: {', '.join(AVAILABLE_FILTERS)}"
         )
     return normalised

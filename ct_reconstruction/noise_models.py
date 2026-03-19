@@ -22,10 +22,10 @@ def add_poisson_noise(sinogram: np.ndarray, I0: float) -> np.ndarray:
          as the units are too large due to our simple simulation"
 
     Steps:
-        p_norm  = sinogram / sinogram.max()          # normalise to [0, 1]
-        I       = I0 * exp(-p_norm)                  # Beer-Lambert
-        I_noisy ~ Poisson(I)                         # photon noise
-        p_noisy = -log(I_noisy / I0) * sinogram.max()  # back to original scale
+        p_norm      = sinogram / sinogram.max()              # normalise to [0, 1]
+        intensity   = I0 * exp(-p_norm)                     # Beer-Lambert
+        counts_noisy ~ Poisson(intensity)                   # photon noise
+        p_noisy     = -log(counts_noisy / I0) * sinogram.max()  # back to original scale
 
     Parameters
     ----------
@@ -46,13 +46,13 @@ def add_poisson_noise(sinogram: np.ndarray, I0: float) -> np.ndarray:
     # Normalise so Beer-Lambert operates in a physically sensible range
     p_norm = sinogram / p_max
     # Convert attenuation to expected photon counts
-    I = I0 * np.exp(-p_norm)
+    intensity = I0 * np.exp(-p_norm)
     # Sample Poisson-distributed photon counts
-    I_noisy = np.random.poisson(I).astype(np.float64)
+    counts_noisy = np.random.poisson(intensity).astype(np.float64)
     # Clip to avoid log(0) singularity
-    I_noisy = np.clip(I_noisy, 1, None)
+    counts_noisy = np.clip(counts_noisy, 1, None)
     # Convert back to attenuation domain and restore original scale
-    return -np.log(I_noisy / I0) * p_max
+    return -np.log(counts_noisy / I0) * p_max
 
 
 def add_gaussian_noise(sinogram: np.ndarray, sigma: float = 0.05) -> np.ndarray:

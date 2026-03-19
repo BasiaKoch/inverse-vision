@@ -8,18 +8,18 @@ Run with:
 import numpy as np
 import pytest
 
-from ct_reconstruction.phantom import load_shepp_logan
-from ct_reconstruction.forward_projection import compute_sinogram, make_angles
-from ct_reconstruction.noise_models import add_poisson_noise, add_gaussian_noise
-from ct_reconstruction.reconstruction_fbp import reconstruct_fbp
-from ct_reconstruction.reconstruction_iterative import reconstruct_sirt, reconstruct_os_sart
 from ct_reconstruction.evaluation_metrics import compute_mse, compute_psnr, compute_ssim
-from ct_reconstruction.filters import validate_filter, AVAILABLE_FILTERS
-
+from ct_reconstruction.filters import AVAILABLE_FILTERS, validate_filter
+from ct_reconstruction.forward_projection import compute_sinogram, make_angles
+from ct_reconstruction.noise_models import add_gaussian_noise, add_poisson_noise
+from ct_reconstruction.phantom import load_shepp_logan
+from ct_reconstruction.reconstruction_fbp import reconstruct_fbp
+from ct_reconstruction.reconstruction_iterative import reconstruct_os_sart, reconstruct_sirt
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def small_phantom() -> np.ndarray:
@@ -38,6 +38,7 @@ def sinogram_and_angles(small_phantom) -> tuple[np.ndarray, np.ndarray]:
 # Phantom
 # ---------------------------------------------------------------------------
 
+
 class TestPhantom:
     def test_shape(self, small_phantom):
         assert small_phantom.shape == (64, 64)
@@ -53,6 +54,7 @@ class TestPhantom:
 # ---------------------------------------------------------------------------
 # Forward projection
 # ---------------------------------------------------------------------------
+
 
 class TestForwardProjection:
     def test_sinogram_columns_match_angles(self, small_phantom):
@@ -80,6 +82,7 @@ class TestForwardProjection:
 # ---------------------------------------------------------------------------
 # Noise models
 # ---------------------------------------------------------------------------
+
 
 class TestNoiseModels:
     def test_poisson_changes_values(self, sinogram_and_angles):
@@ -117,6 +120,7 @@ class TestNoiseModels:
 # FBP reconstruction
 # ---------------------------------------------------------------------------
 
+
 class TestFBP:
     def test_output_shape_matches_phantom(self, sinogram_and_angles, small_phantom):
         sinogram, angles = sinogram_and_angles
@@ -138,6 +142,7 @@ class TestFBP:
 # ---------------------------------------------------------------------------
 # Iterative reconstruction
 # ---------------------------------------------------------------------------
+
 
 class TestIterativeReconstruction:
     def test_sirt_output_shape(self, sinogram_and_angles, small_phantom):
@@ -165,6 +170,7 @@ class TestIterativeReconstruction:
 # Evaluation metrics
 # ---------------------------------------------------------------------------
 
+
 class TestMetrics:
     def test_mse_identical_images(self, small_phantom):
         assert compute_mse(small_phantom, small_phantom) == pytest.approx(0.0)
@@ -188,6 +194,7 @@ class TestMetrics:
 # ---------------------------------------------------------------------------
 # Filter validation
 # ---------------------------------------------------------------------------
+
 
 class TestFilters:
     def test_valid_filter_accepted(self):

@@ -61,7 +61,7 @@ def compute_psnr(reference: np.ndarray, reconstruction: np.ndarray) -> float:
     data_range = ref.max() - ref.min()
     if data_range == 0.0:
         return float("inf")
-    return 10.0 * np.log10(data_range ** 2 / mse)
+    return 10.0 * np.log10(data_range**2 / mse)
 
 
 def compute_ssim(reference: np.ndarray, reconstruction: np.ndarray) -> float:

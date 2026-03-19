@@ -77,10 +77,7 @@ def estimate_noise_stds(
     """
     n_coils = coil_magnitudes.shape[coil_axis]
     return np.array(
-        [
-            np.std(np.take(coil_magnitudes, i, axis=coil_axis)[:noise_rows])
-            for i in range(n_coils)
-        ]
+        [np.std(np.take(coil_magnitudes, i, axis=coil_axis)[:noise_rows]) for i in range(n_coils)]
     )
 
 
@@ -158,9 +155,7 @@ def combine_coils_rss_snr(
     else:
         noise_stds = np.asarray(noise_stds)
         if noise_stds.shape != (n_coils,):
-            raise ValueError(
-                f"noise_stds must have shape ({n_coils},), got {noise_stds.shape}"
-            )
+            raise ValueError(f"noise_stds must have shape ({n_coils},), got {noise_stds.shape}")
 
     normalised = np.stack(
         [
@@ -173,4 +168,4 @@ def combine_coils_rss_snr(
         ],
         axis=coil_axis,
     )
-    return np.sqrt(np.sum(normalised ** 2, axis=coil_axis))
+    return np.sqrt(np.sum(normalised**2, axis=coil_axis))

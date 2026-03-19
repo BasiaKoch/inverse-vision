@@ -5,12 +5,13 @@ Provides helpers to load the standard Shepp-Logan phantom and
 load a real CT image from a PNG file.
 """
 
-import numpy as np
 from pathlib import Path
-from skimage.data import shepp_logan_phantom
-from skimage.transform import resize
-from skimage.io import imread
+
+import numpy as np
 from skimage.color import rgb2gray
+from skimage.data import shepp_logan_phantom
+from skimage.io import imread
+from skimage.transform import resize
 
 
 def load_shepp_logan(size: int = 256) -> np.ndarray:

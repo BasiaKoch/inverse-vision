@@ -8,25 +8,28 @@ Run with:
 import numpy as np
 import pytest
 
-from mri_denoising.reconstruction_fft import kspace_to_image, get_magnitude, get_phase
-from mri_denoising.coil_combination import combine_coils_rss
 from mri_denoising.butterworth_filter import (
-    butterworth_lowpass_filter,
     apply_butterworth_filter,
+    butterworth_lowpass_filter,
+)
+from mri_denoising.coil_combination import (
+    combine_coils_rss,
+    combine_coils_rss_snr,
+    normalise_coil_by_noise,
 )
 from mri_denoising.denoising_filters import (
+    apply_bilateral_filter,
     apply_gaussian_filter,
     apply_mean_filter,
     apply_median_filter,
-    apply_bilateral_filter,
 )
-from mri_denoising.coil_combination import normalise_coil_by_noise, combine_coils_rss_snr
 from mri_denoising.load_kspace import identify_coil_dimension
-
+from mri_denoising.reconstruction_fft import get_magnitude, get_phase, kspace_to_image
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def synthetic_kspace() -> np.ndarray:
@@ -57,6 +60,7 @@ def test_image() -> np.ndarray:
 # FFT reconstruction
 # ---------------------------------------------------------------------------
 
+
 class TestFFTReconstruction:
     def test_output_shape(self, synthetic_kspace):
         image = kspace_to_image(synthetic_kspace)
@@ -80,14 +84,13 @@ class TestFFTReconstruction:
         """ifft2(kspace) → fft2 should recover the original kspace exactly."""
         image = kspace_to_image(synthetic_kspace)
         recovered = np.fft.fft2(image)
-        np.testing.assert_allclose(
-            np.abs(recovered), np.abs(synthetic_kspace), atol=1e-8
-        )
+        np.testing.assert_allclose(np.abs(recovered), np.abs(synthetic_kspace), atol=1e-8)
 
 
 # ---------------------------------------------------------------------------
 # Coil combination
 # ---------------------------------------------------------------------------
+
 
 class TestCoilCombination:
     def test_rss_output_shape(self, synthetic_multi_coil):
@@ -135,6 +138,7 @@ class TestCoilCombination:
 # Butterworth filter
 # ---------------------------------------------------------------------------
 
+
 class TestButterworthFilter:
     def test_mask_shape(self):
         H = butterworth_lowpass_filter((64, 64), D0=30, n=2)
@@ -173,6 +177,7 @@ class TestButterworthFilter:
 # ---------------------------------------------------------------------------
 # Denoising filters
 # ---------------------------------------------------------------------------
+
 
 class TestDenoisingFilters:
     def test_gaussian_shape(self, test_image):
@@ -220,6 +225,7 @@ class TestDenoisingFilters:
 # ---------------------------------------------------------------------------
 # Coil dimension identification
 # ---------------------------------------------------------------------------
+
 
 class TestCoilDimension:
     def test_identifies_smallest_axis(self):
