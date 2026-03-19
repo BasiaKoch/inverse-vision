@@ -23,14 +23,7 @@ and denoising, plus a written literature review:
 ```
 .
 ├── ct_reconstruction/          # Module 1 — CT algorithms
-│   ├── phantom.py              # Shepp-Logan phantom / load CT PNG
-│   ├── forward_projection.py   # Radon transform wrapper
-│   ├── sinogram.py             # Sinogram simulation (noise included)
-│   ├── noise_models.py         # Poisson + Gaussian noise
-│   ├── reconstruction_fbp.py   # Filtered Backprojection (FBP)
-│   ├── reconstruction_iterative.py  # SIRT and OS-SART
-│   ├── filters.py              # FBP filter names & validation
-│   └── evaluation_metrics.py   # MSE, PSNR, SSIM
+│   └── phantom.py              # Shepp-Logan phantom / load CT PNG
 │
 ├── mri_denoising/              # Module 2 — MRI algorithms
 │   ├── load_kspace.py          # Load knee.npy k-space data
