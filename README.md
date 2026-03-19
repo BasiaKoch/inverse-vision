@@ -30,7 +30,7 @@ and denoising, plus a written literature review:
 │   ├── reconstruction_fbp.py   # Filtered Backprojection (FBP)
 │   ├── reconstruction_iterative.py  # SIRT and OS-SART
 │   ├── filters.py              # FBP filter names & validation
-│   └── evaluation_metrics.py  # MSE, PSNR, SSIM
+│   └── evaluation_metrics.py   # MSE, PSNR, SSIM
 │
 ├── mri_denoising/              # Module 2 — MRI algorithms
 │   ├── load_kspace.py          # Load knee.npy k-space data
@@ -40,32 +40,19 @@ and denoising, plus a written literature review:
 │   ├── denoising_filters.py    # Gaussian, mean, bilateral filters
 │   └── butterworth_filter.py   # Butterworth low-pass k-space filter
 │
-├── experiments/
-│   ├── run_ct_experiments.py   # Reproduce all Module 1 results
-│   └── run_mri_experiments.py  # Reproduce all Module 2 results
-│
 ├── tests/
 │   ├── test_ct.py              # Unit tests for CT module
 │   └── test_mri.py             # Unit tests for MRI module
 │
-├── notebooks/
-│   ├── module1_ct_analysis.ipynb    # Interactive CT experiments
-│   └── module2_mri_analysis.ipynb  # Interactive MRI experiments
+├── notebooks/                  # Interactive experiment notebooks
 │
-├── configs/
-│   ├── ct_experiments.yaml     # CT experiment parameters
-│   └── mri_denoising.yaml      # MRI denoising parameters
-│
-├── segmentation_review/
-│   └── paper_analysis.md       # Module 3 written analysis (no AI)
-│
-├── results/                    # Generated output (gitignored large files)
-│   ├── ct_reconstruction/
-│   └── mri_denoising/
-│
-├── report/                     # Final PDF report (place here)
-├── requirements.txt
-└── Dockerfile
+├── .github/workflows/ci.yml    # GitHub Actions CI (lint + test)
+├── pyproject.toml              # Project metadata and tool config
+├── requirements.txt            # Pinned runtime dependencies
+├── requirements-notebooks.txt  # Jupyter/notebook extras
+├── Dockerfile                  # Reproducible container
+├── CONTRIBUTING.md
+└── LICENSE
 ```
 
 ---
@@ -103,48 +90,21 @@ pip install -r requirements-notebooks.txt
 
 ```bash
 docker build -t medical-imaging .
-docker run --rm -v $(pwd):/app medical-imaging python experiments/run_ct_experiments.py
+docker run --rm medical-imaging pytest tests/ -v   # run test suite
+docker run --rm -it medical-imaging bash           # interactive shell
 ```
-
----
-
-## Running the experiments
-
-### Module 1 — CT reconstruction
-
-```bash
-# Using the Shepp-Logan phantom (default)
-python experiments/run_ct_experiments.py
-
-# Using the provided CT chest image
-python experiments/run_ct_experiments.py --phantom CT_exercise_1.png
-
-# Custom config
-python experiments/run_ct_experiments.py --config configs/ct_experiments.yaml
-```
-
-Results are saved to `results/ct_reconstruction/`:
-- `images/` — reconstruction images for every experiment
-- `metrics.csv` — MSE, PSNR, SSIM for all combinations
-
-### Module 2 — MRI denoising
-
-```bash
-python experiments/run_mri_experiments.py --kspace knee.npy
-```
-
-Results are saved to `results/mri_denoising/images/`.
 
 ---
 
 ## Running the notebooks
 
 ```bash
+pip install -r requirements-notebooks.txt
 jupyter lab
 ```
 
-Open `notebooks/module1_ct_analysis.ipynb` or `notebooks/module2_mri_analysis.ipynb`.
-Install `requirements-notebooks.txt` first if you want a local Jupyter environment.
+Open the notebooks under `notebooks/` to reproduce all Module 1 and 2 results
+interactively.
 
 ---
 
@@ -163,16 +123,6 @@ pytest tests/test_mri.py -v
 # With coverage report
 pytest tests/ --cov=ct_reconstruction --cov=mri_denoising --cov-report=term-missing
 ```
-
----
-
-## Experiment configuration
-
-All experiment parameters live in `configs/`. Edit these files to change:
-
-- `ct_experiments.yaml` — dose levels, projection counts, angular ranges, noise sigma,
-  filter list, SIRT/OS-SART hyperparameters, phantom size
-- `mri_denoising.yaml` — denoising filter list, Gaussian sigma, Butterworth cutoff/order
 
 ---
 
@@ -214,7 +164,8 @@ The project was verified with:
 
 ---
 
-## Notes on Module 3
+## Module 3 note
 
-`segmentation_review/paper_analysis.md` is a **template only**. All written content
-must be your own original analysis. Generative AI must not be used for this module.
+All written content in `report.txt` for the literature-review section must be
+original student work. Generative AI must not be used for that section per the
+coursework specification.

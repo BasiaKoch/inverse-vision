@@ -1,14 +1,7 @@
 repos:
-  # PEP8 style enforcement
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
-        args: [--max-line-length=100, --ignore=E203]
-
-  # Trailing whitespace and end-of-file newlines
+  # File hygiene
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -16,7 +9,21 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
 
-  # Run tests before committing to main
+  # Code formatting
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        language_version: python3.10
+
+  # Linting + import sorting (replaces flake8 + isort)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.10
+    hooks:
+      - id: ruff
+        args: [--fix]
+
+  # Run tests before pushing
   - repo: local
     hooks:
       - id: pytest
