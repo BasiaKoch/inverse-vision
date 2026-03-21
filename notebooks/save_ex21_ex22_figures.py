@@ -154,7 +154,7 @@ gauss_denoised = np.stack(
 )
 print("  Applying bilateral filter (may take a moment)...")
 bilateral_denoised = np.stack(
-    [apply_bilateral_filter(magnitude_images[c], sigma_color=0.1, sigma_spatial=3.0)
+    [apply_bilateral_filter(magnitude_images[c], sigma_color=0.05, sigma_spatial=3.0)
      for c in range(n_coils)]
 )
 print("  Denoising complete.")

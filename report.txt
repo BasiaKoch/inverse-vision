@@ -765,129 +765,178 @@ MRI reconstruction itself, rather than applying it only after image formation.
 \subsection*{Part (a): Selected publications}
 
 \begin{itemize}
-  \item \textbf{Processing-based algorithm:} Nyo~T.T., Mebarek-Oudina~F., Hlaing~S.S., and Khan~N.S.,
-        \textit{Otsu's thresholding technique for MRI image brain tumour segmentation},
-        \textit{Multimedia Tools and Applications}, 81:43837--43849 (2022).
-        DOI:~10.1007/s11042-022-13215-1.
+  \item \textbf{Processing-based algorithm:}
+        Qadri~S.F., Rong~C., Ahmad~M., Li~J., Qadri~S., Zareen~S.S., Zhuang~Z.,
+        Khan~S., and Lin~H.,
+        \textit{Chan--Vese aided fuzzy C-means approach for whole breast and
+        fibroglandular tissue segmentation: Preliminary application to real-world
+        breast MRI},
+        \textit{Medical Physics}, 52:2950--2960 (2025).
+        DOI:~10.1002/mp.17660.
 
-  \item \textbf{Data-driven:} Alom~M.Z., Hasan~M., Yakopcic~C., Taha~T.M., and Asari~V.K.,
-        \textit{Recurrent residual U-Net for medical image segmentation},
-        \textit{Journal of Medical Imaging}, 6(1):014006 (2019).
-        DOI:~10.1117/1.JMI.6.1.014006.
+  \item \textbf{Data-driven:}
+        Wang~S., Li~C., Wang~R., Liu~Z., Wang~M., Tan~H., Wu~Y., Liu~X., Sun~H.,
+        Yang~R., Chen~J., Zhou~H., Ben Ayed~I., and Zheng~H.,
+        \textit{Annotation-efficient deep learning for automatic medical image
+        segmentation},
+        \textit{Nature Communications}, 12:5915 (2021).
+        DOI:~10.1038/s41467-021-26216-9.
 \end{itemize}
 
 % ─────────────────────────────────────────────────────────────────────────────
 
-\subsection*{Part (b): Summary of each paper and critical comparison}
+\subsection*{Part (b): Paper summaries and critical comparison}
 
-\paragraph{Nyo et al.\ (2022) --- Otsu thresholding for brain tumour segmentation.}
-The paper targets brain tumour segmentation in FLAIR MRI using the 2015~BRATS
-benchmark (110 images, HGG and LGG).
-RGB images are converted to grayscale via the NTSC model and resized to $240{\times}240$.
-A median filter suppresses impulse noise before thresholding.
-Multi-level Otsu selects $(C{-}1)$ intensity thresholds that jointly maximise
-between-class variance tested for $C\in\{2,3,4\}$; the highest-intensity band is taken as the tumour mask.
-Morphological opening removes small false-positive blobs; closing fills holes.
-No training data or learnable parameters are used at any stage.
-Best result at $C{=}4$: TPR~$68.80\%$, TNR~$95.56\%$ against manual ground truth.
+\paragraph{Qadri et al.\ (2025) --- Chan--Vese aided FCM for breast MRI.}
+The paper segments whole breast and fibroglandular tissue (FGT) in fat-suppressed
+precontrast T1-weighted MRI on the public Duke Breast Cancer MRI dataset
+(922 volumes, 40 subjects, 4520 coronal slices; GE and Siemens scanners).
+Processing is 2D slice-by-slice and fully automated.
+N4 bias field correction removes coil-induced low-frequency intensity
+inhomogeneity before any segmentation step.
+A Gaussian filter and Otsu-based masking extract the breast ROI; skin is
+removed using adaptive intensity thresholds and anatomical thickness priors.
+Fuzzy C-Means (FCM) clustering then assigns each pixel a soft membership
+degree across three classes (FGT, fat, artefact), with the FGT cluster
+identified as the one whose centroid exceeds 40\% of the image maximum intensity.
+Because FCM produces noisy cluster boundaries, a Chan--Vese (CV) active contour
+refines the FGT mask by minimising a region-based energy functional
+$E = \mu L(C) + \nu A(C) + \lambda_1\!\int_{\text{in}}|I-c_1|^2 + \lambda_2\!\int_{\text{out}}|I-c_2|^2$,
+driving contour evolution by intensity homogeneity rather than image gradients,
+which is robust to the blurred edges typical of FS precontrast MRI.
+Results: DSC $93.2{\pm}3.3\%$ whole breast, $84.1{\pm}4.9\%$ FGT;
+outperforms standalone FCM ($89.4\%$), standalone CV ($82.7\%$), and a U-Net
+baseline evaluated on the same data ($83.1\%$ FGT).
 
-\paragraph{Alom et al.\ (2019) --- Recurrent Residual U-Net (R2U-Net).}
-The paper proposes R2U-Net, evaluated on retinal vessel segmentation
-(DRIVE, STARE, CHASE\_DB1), skin lesion segmentation (Kaggle~SLS), and
-lung segmentation.
-The architecture replaces every convolutional block in U-Net with a Recurrent
-Convolutional Layer (RCL): the same $3{\times}3$ filters are applied for $T{=}3$
-recurrent steps, iteratively refining feature maps without adding parameters.
-Each RCL block is wrapped in a residual shortcut, stabilising gradient flow.
-U-Net skip connections from encoder to decoder are retained.
-The decoder ends with a $1{\times}1$ convolution and sigmoid; a threshold of
-$T{=}0.5$ produces the binary mask.
-Training on DRIVE uses 190\,000 patches ($48{\times}48$) from 20 images,
-optimised with binary cross-entropy and Adam.
-R2U-Net achieves AC~$0.9613$ and AUC~$0.9813$ on DRIVE, outperforming
-U-Net (AC~$0.9531$) and ResU-Net ($0.9553$).
+\paragraph{Wang et al.\ (2021) --- AIDE: annotation-efficient deep learning.}
+The paper proposes AIDE, an encoder--decoder framework (U-Net based) for
+segmentation from imperfect training data, validated on liver (CT/MRI, CHAOS),
+prostate (3-domain MRI), breast tumour (11\,852 DCE-MRI images, 3 hospitals),
+and brain/kidney (QUBIQ multi-annotator datasets).
+The segmentation backbone uses standard U-Net skip connections from encoder to
+decoder to preserve spatial resolution; features are extracted through a series
+of $3{\times}3$ convolution, batch normalisation, and ReLU blocks with
+max-pooling (encoder) and bilinear upsampling (decoder), ending in a
+$1{\times}1$ convolution and softmax output.
+The novel contribution is a cross-model self-correction mechanism: two networks
+are trained in parallel and each filters the other's training labels.
+In each mini-batch, the 50\% of samples with the highest segmentation loss are
+flagged as likely noisy and excluded from the supervised update of the partner
+network; every ten epochs, the 25\% of training cases with the lowest DSC loss
+have their labels replaced by the partner network's prediction.
+This dual-network scheme addresses three data imperfection scenarios (limited
+annotations, domain shift, and noisy labels) within a single training loop.
+With only 10\% of training annotations on CHAOS liver, AIDE achieves
+DSC $86.9\%$ vs $88.5\%$ fully supervised ($p{=}0.0791$, not significant);
+on prostate UDA, AIDE raises cross-domain DSC from $45.8\%$ to $80.0\%$.
 
-\paragraph{Comparison.}
+\paragraph{Critical comparison.}
 
-\textit{Data requirements.}
-I think the clearest difference is the amount of data each method needs.
-Otsu is fully unsupervised: the threshold is computed directly from the image histogram, so I believe it can be applied immediately even when no annotated masks are available.
-By contrast, R2U-Net is supervised and depends on labelled training data; in small medical datasets, such as DRIVE, I think this likely requires substantial augmentation and patch extraction to learn a stable segmentation model.
+\textit{Segmentation mechanism.}
+Qadri builds the segmentation mask through a two-stage process: unsupervised
+intensity clustering (FCM) followed by variational boundary refinement
+(Chan--Vese).
+FCM partitions the pixel intensity space by minimising within-cluster variance
+of soft assignments --- analogous to k-means but allowing partial membership.
+Chan--Vese then corrects the cluster boundaries by evolving a closed contour
+to minimise the energy difference between interior and exterior mean intensities;
+because this energy is gradient-free, it propagates across low-contrast edges
+where classical edge-based methods (Canny, Sobel) would stall.
+AIDE operates entirely in the spatial domain through learned convolutional
+feature hierarchies: shallow encoder layers detect local intensity gradients
+and edges; deeper layers aggregate texture and shape context; skip connections
+re-inject spatial detail lost during downsampling into the decoder.
+The decoder produces a per-pixel probability map and applies a threshold to
+obtain the binary mask --- the same mechanism used by all U-Net variants.
 
-\textit{Representation and segmentation performance.}
-I believe Otsu is fundamentally limited by the fact that it uses only the global intensity histogram and does not model spatial context.
-Because of that, it may work reasonably well when the tumour forms a distinct bright intensity mode, but it could struggle when MRI bias-field effects or intensity overlap make the histogram less separable.
-R2U-Net, in contrast, appears to learn a hierarchical spatial representation: early layers likely capture local edges and textures, while deeper layers may encode broader structural context, with skip connections helping recover localisation in the decoder.
-The recurrent refinement may also help in ambiguous boundary regions by reprocessing features over multiple passes.
-Although the two papers study different tasks, the contrast in reported results still suggests the advantage of learned spatial representations over a histogram-only method for complex segmentation boundaries.
+\textit{Performance and scenario dependence.}
+Qadri performs well when the target tissue forms a distinct intensity cluster
+after bias correction (FGT vs fat in FS MRI), and when boundaries correspond
+to intensity steps resolvable by the CV energy functional.
+It degrades when FGT is sparse or heterogeneous (the 40\% centroid threshold
+fails), at initial and final MRI slices where partial-volume effects reduce
+contrast, and when scanner protocols shift the cluster intensities beyond the
+fixed threshold.
+AIDE achieves competitive performance with limited labelled data across diverse
+anatomical tasks, but its advantage is most pronounced under annotation
+scarcity and domain shift; on tasks with sufficient high-quality annotations it
+offers no benefit over standard supervised training.
+Its accuracy drops sharply when class imbalance is extreme (breast tumour
+DSC $70{-}73\%$, vs $86.9\%$ for liver) and residual domain shift remains
+even after adaptation (prostate cross-domain DSC gap of $\sim$9\% persists).
 
-\textit{Scenario suitability.}
-I think Otsu is most suitable when the target region is compact, relatively homogeneous, and clearly separated in intensity from the background.
-In that kind of setting, simple thresholding may already give a reasonable tumour mask.
-However, I believe it would be much less reliable for infiltrative tumours, overlapping tissue classes, or scans with strong intensity inhomogeneity.
-R2U-Net seems better suited to irregular morphologies and fine structures, provided that the training and test data come from similar distributions.
-At the same time, I think its performance could degrade noticeably under domain shift if retraining or adaptation is not performed.
+\textit{Annotation and training requirements.}
+Qadri requires zero labelled data: every parameter (FCM cluster count, CV
+energy weights, N4 correction) is either fixed analytically or set from
+image statistics, making it deployable on any new scanner without annotation
+effort.
+AIDE still requires at least a small labelled set (typically 20--30 cases) to
+initialise pseudo-label generation; label-free unsupervised segmentation
+remains out of scope.
 
-\textit{Interpretability and clinical use.}
-I think one major strength of Otsu is interpretability.
-The threshold comes directly from the histogram, and each step of the segmentation pipeline is explicit and easy to inspect.
-R2U-Net is much less transparent: I believe the final mask is shaped by a large number of learned parameters, so understanding a specific segmentation decision would likely require additional interpretability tools.
-This could make clinical justification more difficult, even if segmentation accuracy is higher.
+\textit{Interpretability.}
+Every step of the Qadri pipeline is inspectable: the bias-corrected image,
+FCM membership maps, and Chan--Vese contour at each iteration are all
+deterministic and human-readable, which aligns with clinical audit requirements.
+AIDE's segmentation is distributed across two networks and millions of
+parameters; post-hoc interpretation requires saliency or attribution methods
+not included in the original work.
 
 \textit{Computational cost.}
-I believe Otsu is computationally trivial, since it can run very quickly on a CPU with almost no memory demand.
-R2U-Net is clearly more expensive, because training requires much more compute and typically GPU support.
-Even so, I think inference after training would still be fast enough for practical deployment.
+Qadri runs in $\approx$29\,s per subject on a modest GPU (NVIDIA MX250), with no
+training phase.
+AIDE requires GPU training over multiple epochs with dual-network co-optimisation,
+though inference after training is fast; the upfront cost grows with dataset size.
+
 % ─────────────────────────────────────────────────────────────────────────────
-\subsection*{Part (c): Proposed improvement to Nyo et al.\ (2022)}
+\subsection*{Part (c): Proposed improvement to Qadri et al.\ (2025)}
 
-I think the main weakness of the Otsu-based pipeline may be its reliance on a
-single global histogram.
-In FLAIR MRI, intensity inhomogeneity can make the same tissue appear at
-different intensities across the image, so one global threshold may
-under-segment tumour in some regions and over-segment normal tissue in others.
-I also believe the morphological post-processing is limited, since a fixed
-structuring element cannot use true spatial context and may not handle
-irregular tumour boundaries well.
+The paper has two documented failure modes.
+First, processing is entirely 2D and slice-independent: each coronal slice is
+segmented without reference to adjacent slices, so the FGT mask can be
+discontinuous across the volume, with particularly high false-negative rates
+at the initial and final slices where partial-volume effects reduce contrast
+(Figure~6 in the paper).
+Second, the FGT cluster is identified by a fixed threshold of 40\% of the
+image maximum intensity --- an empirically tuned value that fails when FGT
+is sparse or when scanner-specific intensity profiles shift cluster centroids
+outside the expected range.
 
-\paragraph{Proposed pipeline.}
-I would keep the method fully processing-based, but add three targeted changes.
+\paragraph{Proposed extension.}
 
-\textbf{Step 1: Bias field correction.}
-I think N4 bias field correction should be applied before thresholding.
-This could reduce low-frequency intensity variation and make tumour and
-background intensities more consistent across the image, so that thresholding
-becomes more reliable.
+\textbf{Step 1: Replace 2D FCM with 3D supervoxel clustering.}
+Apply SLIC3D (Simple Linear Iterative Clustering in 3D) to the full
+bias-corrected 3D volume before FCM.
+SLIC3D groups spatially contiguous voxels with similar intensities into compact
+supervoxels, producing a representation that enforces inter-slice continuity
+by construction.
+FCM is then run on supervoxel-level features (mean intensity, spatial centroid)
+rather than individual pixels.
+Because each supervoxel aggregates voxels from multiple adjacent slices, the
+FGT assignment at slice boundaries inherits context from the central volume,
+directly resolving the initial/final-slice discontinuity without any labelled
+data.
 
-\textbf{Step 2: Local adaptive Otsu.}
-Instead of one global Otsu threshold, I would consider a local version.
-For example, the image could be divided into overlapping tiles, with Otsu
-thresholding applied in each tile and the results blended together.
-I think this might help where residual intensity non-uniformity remains after
-bias correction, while still preserving the threshold-based character of the
-original method.
+\textbf{Step 2: Replace the fixed 40\% threshold with a data-adaptive criterion.}
+Instead of selecting the FGT cluster by comparing its centroid to a global
+fraction of the image maximum, select it by maximising the Fisher inter-class
+discriminant ratio between candidate FGT and fat clusters:
+$J = (\mu_{\text{FGT}} - \mu_{\text{fat}})^2 / (\sigma^2_{\text{FGT}} + \sigma^2_{\text{fat}})$,
+computed from the supervoxel FCM centroids and within-cluster variances.
+This criterion adapts per-image to the actual intensity distribution, removing
+the dependency on any globally fixed parameter and handling the scanner
+variability documented across the GE/Siemens acquisitions in the dataset.
 
-\textbf{Step 3: Graph-cut refinement.}
-A further improvement might be to use the adaptive Otsu mask as a seed for a
-graph-cut refinement.
-Tumour pixels from the Otsu step could serve as foreground seeds, with a border
-band used as background seeds.
-The graph-cut energy could combine an intensity-based unary term with a
-gradient-based smoothness term, so that the final boundary follows stronger
-image edges more closely.
+Both modifications are deterministic, require no training data, and add only
+moderate computational cost (SLIC3D is $\mathcal{O}(N)$ in voxel count).
+The Chan--Vese boundary refinement step is retained unchanged and is now
+applied to the 3D supervoxel-derived mask, propagated slice by slice with
+contour initialisation from the adjacent slice result rather than a cold start.
+These changes directly target both reported failure modes: 3D supervoxels
+address spatial discontinuity, and the Fisher criterion removes the
+hand-tuned threshold, together aiming to raise the FGT sensitivity ($76.7\%$)
+where the 2D pipeline currently underperforms.
 
-I think this may be preferable to fixed morphological refinement, because it
-could adapt better to irregular tumour margins and reduce some false positives.
-At the same time, the pipeline would still remain deterministic, annotation-free,
-and only moderately more expensive computationally.
-
-Overall, I believe these changes could address two likely causes of the
-reported TPR ceiling of $68.80\%$: first, the weakness of a global threshold
-under intensity inhomogeneity; and second, the limited spatial awareness of
-morphological post-processing.
-They would probably not remove all segmentation errors, but they could make the
-final tumour mask more spatially coherent and less dependent on thresholding
-alone.
 \end{document}
 
 
