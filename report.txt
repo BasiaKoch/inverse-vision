@@ -760,183 +760,178 @@ than plain RSS, for example one based on estimated coil sensitivities.
 More broadly, it could be beneficial to incorporate denoising directly into the
 MRI reconstruction itself, rather than applying it only after image formation.
 % ═══════════════════════════════════════════════════════════════════════════
-\section{Exercise 3.1 --- Image Segmentation: Literature Review}
 
+\FloatBarrier
+\section{Exercise 3}
 \subsection*{Part (a): Selected publications}
 
 \begin{itemize}
-  \item \textbf{Processing-based algorithm:}
-        Qadri~S.F., Rong~C., Ahmad~M., Li~J., Qadri~S., Zareen~S.S., Zhuang~Z.,
-        Khan~S., and Lin~H.,
-        \textit{Chan--Vese aided fuzzy C-means approach for whole breast and
-        fibroglandular tissue segmentation: Preliminary application to real-world
-        breast MRI},
-        \textit{Medical Physics}, 52:2950--2960 (2025).
-        DOI:~10.1002/mp.17660.
+  \item \textbf{Data-driven (ML/DL):}
+        Alom~M.Z., Yakopcic~C., Hasan~M., Taha~T.M., and Asari~V.K.,
+        \textit{Recurrent residual U-Net for medical image segmentation},
+        \textit{Journal of Medical Imaging}, 6(1):014006 (2019).
+        DOI:~10.1117/1.JMI.6.1.014006.
 
-  \item \textbf{Data-driven:}
-        Wang~S., Li~C., Wang~R., Liu~Z., Wang~M., Tan~H., Wu~Y., Liu~X., Sun~H.,
-        Yang~R., Chen~J., Zhou~H., Ben Ayed~I., and Zheng~H.,
-        \textit{Annotation-efficient deep learning for automatic medical image
-        segmentation},
-        \textit{Nature Communications}, 12:5915 (2021).
-        DOI:~10.1038/s41467-021-26216-9.
+  \item \textbf{Processing-based algorithm:}
+        Kim~S.J.W., Seo~S., Kim~H.S., Kim~D.Y., Kang~K.W., Min~J.J., and Lee~J.S.,
+        \textit{Multi-atlas cardiac PET segmentation},
+        \textit{Physica Medica}, 58:32--39 (2019).
+        DOI:~10.1016/j.ejmp.2019.01.003.
 \end{itemize}
 
-% ─────────────────────────────────────────────────────────────────────────────
+For the data-driven example, I selected Alom et al., which is clearly a
+deep learning segmentation paper: it proposes RU-Net and R2U-Net,
+architectures that extend U-Net with recurrent convolutional layers and
+residual connections, and learns the segmentation mapping from labelled
+image--mask pairs.
+For the processing-based example, I selected Kim et al., which is a
+classical segmentation study: it relies on atlas construction, affine and
+nonlinear spatial normalisation, similarity-based atlas selection, and
+ROI transfer, without any machine learning or deep learning.
 
 \subsection*{Part (b): Paper summaries and critical comparison}
 
-\paragraph{Qadri et al.\ (2025) --- Chan--Vese aided FCM for breast MRI.}
-The paper segments whole breast and fibroglandular tissue (FGT) in fat-suppressed
-precontrast T1-weighted MRI on the public Duke Breast Cancer MRI dataset
-(922 volumes, 40 subjects, 4520 coronal slices; GE and Siemens scanners).
-Processing is 2D slice-by-slice and fully automated.
-N4 bias field correction removes coil-induced low-frequency intensity
-inhomogeneity before any segmentation step.
-A Gaussian filter and Otsu-based masking extract the breast ROI; skin is
-removed using adaptive intensity thresholds and anatomical thickness priors.
-Fuzzy C-Means (FCM) clustering then assigns each pixel a soft membership
-degree across three classes (FGT, fat, artefact), with the FGT cluster
-identified as the one whose centroid exceeds 40\% of the image maximum intensity.
-Because FCM produces noisy cluster boundaries, a Chan--Vese (CV) active contour
-refines the FGT mask by minimising a region-based energy functional
-$E = \mu L(C) + \nu A(C) + \lambda_1\!\int_{\text{in}}|I-c_1|^2 + \lambda_2\!\int_{\text{out}}|I-c_2|^2$,
-driving contour evolution by intensity homogeneity rather than image gradients,
-which is robust to the blurred edges typical of FS precontrast MRI.
-Results: DSC $93.2{\pm}3.3\%$ whole breast, $84.1{\pm}4.9\%$ FGT;
-outperforms standalone FCM ($89.4\%$), standalone CV ($82.7\%$), and a U-Net
-baseline evaluated on the same data ($83.1\%$ FGT).
+\paragraph{Alom et al.\ (2019) --- Recurrent residual U-Net (R2U-Net).}
+Alom et al.\ propose two deep learning architectures, RU-Net and
+R2U-Net, for medical image segmentation.
+The models are evaluated on retinal blood vessel segmentation, skin
+lesion segmentation, and lung lesion segmentation.
+The encoder--decoder U-Net structure is retained, but standard
+convolutional blocks are replaced by recurrent convolutional layers; in
+R2U-Net these are additionally wrapped in residual connections to
+improve feature propagation and training stability.
+The paper uses a patch-based strategy for retinal vessel segmentation
+and an end-to-end image-based strategy for the skin and lung lesion
+tasks.
+Performance is assessed using accuracy, sensitivity, specificity, Dice,
+Jaccard, and AUC.
+The authors report that RU-Net and especially R2U-Net generally
+outperform equivalent SegNet, U-Net, and ResU-Net baselines, often
+with the same or fewer parameters.
+Overall, this is best viewed as a method-development paper showing
+that recurrent residual feature accumulation can improve semantic
+segmentation across several medical imaging tasks.
 
-\paragraph{Wang et al.\ (2021) --- AIDE: annotation-efficient deep learning.}
-The paper proposes AIDE, an encoder--decoder framework (U-Net based) for
-segmentation from imperfect training data, validated on liver (CT/MRI, CHAOS),
-prostate (3-domain MRI), breast tumour (11\,852 DCE-MRI images, 3 hospitals),
-and brain/kidney (QUBIQ multi-annotator datasets).
-The segmentation backbone uses standard U-Net skip connections from encoder to
-decoder to preserve spatial resolution; features are extracted through a series
-of $3{\times}3$ convolution, batch normalisation, and ReLU blocks with
-max-pooling (encoder) and bilinear upsampling (decoder), ending in a
-$1{\times}1$ convolution and softmax output.
-The novel contribution is a cross-model self-correction mechanism: two networks
-are trained in parallel and each filters the other's training labels.
-In each mini-batch, the 50\% of samples with the highest segmentation loss are
-flagged as likely noisy and excluded from the supervised update of the partner
-network; every ten epochs, the 25\% of training cases with the lowest DSC loss
-have their labels replaced by the partner network's prediction.
-This dual-network scheme addresses three data imperfection scenarios (limited
-annotations, domain shift, and noisy labels) within a single training loop.
-With only 10\% of training annotations on CHAOS liver, AIDE achieves
-DSC $86.9\%$ vs $88.5\%$ fully supervised ($p{=}0.0791$, not significant);
-on prostate UDA, AIDE raises cross-domain DSC from $45.8\%$ to $80.0\%$.
+\paragraph{Kim et al.\ (2019) --- Multi-atlas cardiac PET segmentation.}
+Kim et al.\ propose a multi-atlas segmentation pipeline for automatic
+segmentation of the left ventricular myocardium in dynamic cardiac PET.
+The study uses PET/CT scans from twelve rats after left coronary artery
+ligation and focuses on ROI definition for subsequent perfusion and
+kinetic analysis.
+Each atlas is created by manually segmenting the left ventricle on
+reoriented short-axis PET images and dividing the myocardium into
+angular segments.
+For a new source image, the method performs affine and nonlinear
+spatial normalisation to each candidate atlas, then selects the
+best-matching atlas using voxel-wise Pearson correlation and RMSE,
+before transferring the predefined ROIs.
+Performance is evaluated using leave-one-out cross-validation and
+compared with both manual segmentation and a conventional single-atlas
+approach.
+The paper reports that multi-atlas segmentation agrees more closely
+with manual segmentation than the single-atlas method, achieving
+$r^2 = 0.92$ versus $r^2 = 0.88$ for perfusion estimates, while also
+reducing underestimation in high-perfusion regions.
+Methodologically, this is a classical atlas-based and registration-based
+segmentation pipeline rather than a learned predictive model.
 
 \paragraph{Critical comparison.}
 
-\textit{Segmentation mechanism.}
-Qadri builds the segmentation mask through a two-stage process: unsupervised
-intensity clustering (FCM) followed by variational boundary refinement
-(Chan--Vese).
-FCM partitions the pixel intensity space by minimising within-cluster variance
-of soft assignments --- analogous to k-means but allowing partial membership.
-Chan--Vese then corrects the cluster boundaries by evolving a closed contour
-to minimise the energy difference between interior and exterior mean intensities;
-because this energy is gradient-free, it propagates across low-contrast edges
-where classical edge-based methods (Canny, Sobel) would stall.
-AIDE operates entirely in the spatial domain through learned convolutional
-feature hierarchies: shallow encoder layers detect local intensity gradients
-and edges; deeper layers aggregate texture and shape context; skip connections
-re-inject spatial detail lost during downsampling into the decoder.
-The decoder produces a per-pixel probability map and applies a threshold to
-obtain the binary mask --- the same mechanism used by all U-Net variants.
+The two papers represent two distinct segmentation paradigms.
+Alom et al.\ propose a \textit{data-driven semantic segmentation} method:
+RU-Net and R2U-Net learn a pixel-wise mapping from annotated image--mask
+pairs using an encoder--decoder architecture with skip connections,
+recurrent convolutional layers, and residual links.
+By contrast, Kim et al.\ use a \textit{processing-based atlas segmentation}
+pipeline: a new PET image is spatially normalised to several manually
+labelled atlases, the best-matching atlas is selected using similarity
+measures, and its ROIs are transferred to the source image.
+In course terms, the first is supervised feature learning, whereas the
+second is classical registration-based segmentation with explicit
+anatomical priors.
 
-\textit{Performance and scenario dependence.}
-Qadri performs well when the target tissue forms a distinct intensity cluster
-after bias correction (FGT vs fat in FS MRI), and when boundaries correspond
-to intensity steps resolvable by the CV energy functional.
-It degrades when FGT is sparse or heterogeneous (the 40\% centroid threshold
-fails), at initial and final MRI slices where partial-volume effects reduce
-contrast, and when scanner protocols shift the cluster intensities beyond the
-fixed threshold.
-AIDE achieves competitive performance with limited labelled data across diverse
-anatomical tasks, but its advantage is most pronounced under annotation
-scarcity and domain shift; on tasks with sufficient high-quality annotations it
-offers no benefit over standard supervised training.
-Its accuracy drops sharply when class imbalance is extreme (breast tumour
-DSC $70{-}73\%$, vs $86.9\%$ for liver) and residual domain shift remains
-even after adaptation (prostate cross-domain DSC gap of $\sim$9\% persists).
+The methods differ in both the information they use and their dependence
+on annotation.
+R2U-Net learns appearance features such as edges, texture, and context
+directly from labelled data, which makes it potentially well suited to
+heterogeneous targets with complex boundaries.
+However, its performance depends on the quality and representativeness of
+the training set, and the paper does not test robustness to domain shift
+or unseen acquisition settings.
+The multi-atlas method also depends on manual annotation, but only to
+construct a small atlas library rather than a large supervised training
+set.
+This is likely to be advantageous in small, specialised studies such as
+the rodent cardiac PET setting of Kim et al., where expert atlas creation
+is feasible but large labelled datasets are not.
 
-\textit{Annotation and training requirements.}
-Qadri requires zero labelled data: every parameter (FCM cluster count, CV
-energy weights, N4 correction) is either fixed analytically or set from
-image statistics, making it deployable on any new scanner without annotation
-effort.
-AIDE still requires at least a small labelled set (typically 20--30 cases) to
-initialise pseudo-label generation; label-free unsupervised segmentation
-remains out of scope.
+Their likely failure modes are correspondingly different.
+R2U-Net may generalise well when relevant variability is represented in
+training, and its learned features make it more flexible than template
+transfer for fine vessels or lesion boundaries.
+Its weakness is likely to be reduced performance on images that differ
+substantially from the training distribution.
+The atlas method is less affected by training-set bias, but is strongly
+dependent on registration quality and atlas representativeness.
+Kim et al.\ show that multi-atlas segmentation improves on single-atlas
+segmentation because selecting the best-matching template reduces mismatch
+between source and reference; if pathology or tracer distribution differs
+substantially from the available atlases, accuracy would likely fall. :contentReference[oaicite:2]{index=2}
 
-\textit{Interpretability.}
-Every step of the Qadri pipeline is inspectable: the bias-corrected image,
-FCM membership maps, and Chan--Vese contour at each iteration are all
-deterministic and human-readable, which aligns with clinical audit requirements.
-AIDE's segmentation is distributed across two networks and millions of
-parameters; post-hoc interpretation requires saliency or attribution methods
-not included in the original work.
+A further contrast is interpretability and computational profile.
+The multi-atlas pipeline is relatively transparent, because atlas
+creation, registration, similarity scoring, and ROI transfer can all be
+inspected directly.
+R2U-Net is architecturally understandable, but its internal learned
+features are less interpretable.
+Computationally, the trade-off is reversed: multi-atlas segmentation
+avoids training but requires repeated affine and nonlinear registration
+at inference time, whereas R2U-Net requires expensive training but then
+segments in a single forward pass.
+Overall, Kim et al.\ appears better suited to controlled quantitative
+imaging settings with limited variability and a need for interpretability,
+whereas Alom et al.\ appears better suited to broader semantic
+segmentation problems, provided sufficient labelled training data are
+available.
+Neither is universally superior; the better choice depends on annotation
+availability, anatomical variability, and whether interpretability or
+predictive flexibility is the main priority.
+\subsection*{Part (c): Proposed improvement to Alom et al.\ (2019)}
 
-\textit{Computational cost.}
-Qadri runs in $\approx$29\,s per subject on a modest GPU (NVIDIA MX250), with no
-training phase.
-AIDE requires GPU training over multiple epochs with dual-network co-optimisation,
-though inference after training is fast; the upfront cost grows with dataset size.
+One plausible improvement to R2U-Net would be to replace plain
+skip-connection concatenation with attention-gated skip connections.
+In Alom et al., encoder features are passed to the decoder through
+direct concatenation, which preserves spatial detail but also forwards
+all encoder activations equally.
+This may be suboptimal in tasks with strong foreground--background
+imbalance or small target structures, such as retinal vessels, where
+unfiltered skip features could contribute to false positives in the
+background.
+The reported results suggest that R2U-Net performs very well overall,
+but that there may still be room to improve sensitivity to fine target
+structures rather than only overall accuracy.
 
-% ─────────────────────────────────────────────────────────────────────────────
-\subsection*{Part (c): Proposed improvement to Qadri et al.\ (2025)}
+A reasonable extension would therefore be to add attention gates to the
+skip connections while keeping the recurrent residual convolutional
+blocks unchanged.
+This would allow the decoder to receive encoder features in a more
+selective way, ideally suppressing irrelevant background responses and
+emphasising spatially relevant structures.
+Such a modification might be especially helpful for thin vessels or
+low-contrast lesion boundaries, where irrelevant activations can make
+accurate delineation more difficult.
 
-The paper has two documented failure modes.
-First, processing is entirely 2D and slice-independent: each coronal slice is
-segmented without reference to adjacent slices, so the FGT mask can be
-discontinuous across the volume, with particularly high false-negative rates
-at the initial and final slices where partial-volume effects reduce contrast
-(Figure~6 in the paper).
-Second, the FGT cluster is identified by a fixed threshold of 40\% of the
-image maximum intensity --- an empirically tuned value that fails when FGT
-is sparse or when scanner-specific intensity profiles shift cluster centroids
-outside the expected range.
-
-\paragraph{Proposed extension.}
-
-\textbf{Step 1: Replace 2D FCM with 3D supervoxel clustering.}
-Apply SLIC3D (Simple Linear Iterative Clustering in 3D) to the full
-bias-corrected 3D volume before FCM.
-SLIC3D groups spatially contiguous voxels with similar intensities into compact
-supervoxels, producing a representation that enforces inter-slice continuity
-by construction.
-FCM is then run on supervoxel-level features (mean intensity, spatial centroid)
-rather than individual pixels.
-Because each supervoxel aggregates voxels from multiple adjacent slices, the
-FGT assignment at slice boundaries inherits context from the central volume,
-directly resolving the initial/final-slice discontinuity without any labelled
-data.
-
-\textbf{Step 2: Replace the fixed 40\% threshold with a data-adaptive criterion.}
-Instead of selecting the FGT cluster by comparing its centroid to a global
-fraction of the image maximum, select it by maximising the Fisher inter-class
-discriminant ratio between candidate FGT and fat clusters:
-$J = (\mu_{\text{FGT}} - \mu_{\text{fat}})^2 / (\sigma^2_{\text{FGT}} + \sigma^2_{\text{fat}})$,
-computed from the supervoxel FCM centroids and within-cluster variances.
-This criterion adapts per-image to the actual intensity distribution, removing
-the dependency on any globally fixed parameter and handling the scanner
-variability documented across the GE/Siemens acquisitions in the dataset.
-
-Both modifications are deterministic, require no training data, and add only
-moderate computational cost (SLIC3D is $\mathcal{O}(N)$ in voxel count).
-The Chan--Vese boundary refinement step is retained unchanged and is now
-applied to the 3D supervoxel-derived mask, propagated slice by slice with
-contour initialisation from the adjacent slice result rather than a cold start.
-These changes directly target both reported failure modes: 3D supervoxels
-address spatial discontinuity, and the Fisher criterion removes the
-hand-tuned threshold, together aiming to raise the FGT sensitivity ($76.7\%$)
-where the 2D pipeline currently underperforms.
-
+To evaluate this improvement, three models could be compared on the
+same datasets and train/test splits used in the original paper:
+baseline U-Net, baseline R2U-Net, and attention-gated R2U-Net.
+Performance should be assessed using Dice, Jaccard, sensitivity,
+specificity, and AUC, with particular attention to fine or low-contrast
+structures.
+An ablation study at matched parameter budgets would also be important,
+since one of the strengths claimed for R2U-Net is improved performance
+without a large increase in parameters.
+Qualitative error analysis should then be used to test whether the
+attention-gated version reduces false positives in irrelevant regions.
 \end{document}
 
 

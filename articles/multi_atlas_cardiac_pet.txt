@@ -1,0 +1,1083 @@
+Physica Medica 58 (2019) 32–39
+
+Contents lists available at ScienceDirect
+
+Physica Medica
+journal homepage: www.elsevier.com/locate/ejmp
+
+Original paper
+
+Multi-atlas cardiac PET segmentation
+a,b
+
+a,c
+
+T
+d
+
+d
+
+Sally Ji Who Kim , Seongho Seo , Hyeon Sik Kim , Dong-Yeon Kim , Keon Wook Kang
+⁎
+Jung-Joon Mind, Jae Sung Leea,e,f,
+
+a,e,f
+
+,
+
+a
+
+Department of Nuclear Medicine, Seoul National University, Seoul, Republic of Korea
+Gordon Center for Medical Imaging, Department of Radiology, Massachusetts General Hospital, Harvard Medical School, Boston, MA, United States
+Neuroscience Research Institute, Gachon University, Incheon, Republic of Korea
+d
+Department of Nuclear Medicine, Chonnam National University Hwasun Hospital, Hwasun, Jeonnam, Republic of Korea
+e
+Department of Biomedical Sciences, Seoul National University, Seoul, Republic of Korea
+f
+Institute of Radiation Medicine, Medical Research Center, Seoul National University, Seoul, Republic of Korea
+b
+c
+
+A R T I C LE I N FO
+
+A B S T R A C T
+
+Keywords:
+Segmentation
+Myocardial PET
+Atlas
+Quantiﬁcation
+
+Purpose: We propose a multi-atlas based segmentation method for cardiac PET and SPECT images to deal with
+the high variability of tracer uptake characteristics in myocardium. In addition, we verify its performance by
+comparing it to the manual segmentation and single-atlas based approach, using dynamic myocardial PET.
+Methods: Twelve left coronary artery ligated SD rats underwent ([18F]ﬂuoropentyl) triphenylphosphonium salt
+PET/CT scans. Atlas-based segmentation is based on the spatial normalized template with pre-deﬁned region-ofinterest (ROI) for each anatomical or functional structure. To generate multiple left ventricular (LV) atlases, each
+LV image was segmented manually and divided into angular segments. The segmentation methods performances
+were compared in regional count information using leave-one-out cross-validation. Additionally, the polar-maps
+of kinetic parameters were estimated.
+Results: In all images, the highest r2 template yielded the lowest root-mean-square error (RMSE) between the
+source image and the best-matching templates ranged between 0.91–0.97 and 0.06–0.11, respectively. The
+single-atlas and multi-atlas based ROIs yielded remarkably diﬀerent perfusion distributions: only the multi-atlas
+based segmentation showed equivalent high correlation results (r2 = 0.92) with the manual segmentation
+compared with the single-atlas based (r2 = 0.88). The high perfusion value underestimation was remarkable in
+single-atlas based segmentation.
+Conclusions: The main advantage of the proposed multi-atlas based cardiac segmentation method is that it does
+not require any prior information on the tracer distribution to be incorporated into the image segmentation
+algorithms. Therefore, the same procedure suggested here is applicable to any other cardiac PET or SPECT
+imaging agents without modiﬁcation.
+
+1. Introduction
+Tracer kinetic analysis of dynamic myocardial PET enables the
+quantiﬁcation of absolute myocardial blood ﬂow (MBF) and myocardial
+ﬂow reserve (MFR) in human and animals [1–3]. Dedicated cardiac
+SPECT systems based on new detector technologies also allow fast dynamic studies and absolute quantitation [4–6]. In the analysis of those
+myocardial PET and SPECT data, accurate segmentation of left ventricular myocardium is a pivotal step because failure in the myocardial
+segmentation leads to the wrong quantiﬁcation of the MBF and MFR
+[7,8].
+Multivariate analysis techniques, such as cluster analysis, factor
+
+⁎
+
+analysis, independent component analysis, and non-negative matrix
+factorization, enable the automatic separation of cardiac components
+and extraction of time-activity curves from dynamic myocardial PET
+images [9–12]. However, in these approaches, the accuracy of anatomical delineation of the boundary between the myocardium and ventricular cavity is limited, because the cardiac components are separated
+mainly based on their physiological characteristics. An alternative approach is the deformable segmentation method, such as active contour
+models and graph cuts [13–17]. Such deformable segmentation
+methods sometimes fail in the segmentation of myocardium with very
+low tracer uptake if no appropriate regularization on the contour shape
+is applied. However, such modeling and regularization parameters
+
+Corresponding author at: Department of Nuclear Medicine, Seoul National University, 103 Daehak-ro, Jongno-gu, Seoul 03080, Republic of Korea.
+E-mail address: jaes@snu.ac.kr (J.S. Lee).
+
+https://doi.org/10.1016/j.ejmp.2019.01.003
+Received 20 August 2018; Received in revised form 14 December 2018; Accepted 4 January 2019
+Available online 18 January 2019
+1120-1797/ © 2019 Associazione Italiana di Fisica Medica. Published by Elsevier Ltd. All rights reserved.
+
+Physica Medica 58 (2019) 32–39
+
+S.J.W. Kim et al.
+
+Axial
+
+Angular
+
+ROIs
+
+Fig. 1. An atlas of myocardial segments generated by the manual reorientation and segmentation of left ventricular myocardium in [18F]FPTP PET and the automatic
+axial and angular (Δθ = 15°) subdivision.
+
+Animals was followed. Twelve Sprague-Dawley rats underwent left
+coronary artery ligation surgery 24 h before the PET scan. A small animal PET/CT scanner (Inveon; Siemens Medical Solutions, Knoxville,
+TN) was used to acquire dynamic PET (5 × 1 s, 5 × 5 s, 3 × 10 s,
+4 × 15 s, 16 × 30 s, 8 × 60 s: 18 min) and static CT images after the
+intravenous injection of 18F-FPTP (average activity = 37 MBq). The
+PET images were reconstructed into 128 × 128 × 159 matrices of
+0.78 × 0.78 × 0.80-mm voxel size using a ﬁltered back-projection algorithm. A static PET image was generated by summing the dynamic
+PET frames.
+
+optimized for a speciﬁc radiotracer and species sometimes do not work
+for other cardiac imaging agents in the same or other species [7,8]. In
+addition, the activity distribution outside myocardium (e.g., hepatic
+uptake) that should be properly handled in the segmentation depends
+on the radiotracers and species. The quantitative gated SPECT (QGS)
+contour detection principle is a popular tool for gated myocardial
+SPECT [18]. The modiﬁed algorithm, by taking into account the better
+valve deﬁnition of attenuation-corrected high-resolution PET, is also
+used for the quantitative dynamic PET studies. However, in some cases,
+user intervention (contour adjustment) is still required [19]. In addition, this approach has mainly been validated only for human data.
+In this paper, we propose a multi-atlas based segmentation for
+cardiac PET and SPECT images to deal with the large variability of the
+tracer uptake characteristics in the myocardium and other surrounding
+organs. Atlas-based segmentation is based on the spatial normalization
+of source (or input) image onto the template on which the regions-ofinterest (ROI) for each anatomical or functional structure is predeﬁned
+(the atlas labels). Fully automatic segmentation and analysis methods
+using single or probabilistic atlas-based segmentation are well established for brain PET and SPECT images [20–22]. Commercial software
+provides the atlas-based segmentation tool for cardiac PET and SPECT
+image analysis. However, this cardiac segmentation tool relies on only a
+single standard atlas. Because the spatial normalization between the
+source image and template is carried out based on the image-based
+similarity, the large intensity discrepancy between the source and
+template causes an enormous distortion of the source image. For example, the defect size in the heart is underestimated on the image
+spatially normalized onto the normal template because the shrinkage of
+the defect region increases the image similarity. We can overcome this
+limitation by selecting the best matching template with the most similar
+tracer distribution as the source image among the multiple template
+candidates.
+In this study, we demonstrate how we have developed the multiatlas based segmentation method for the cardiac image analysis and
+validated its performance using a ﬂuorine-18 labeled myocardial PET
+tracer, ([18F]ﬂuoropentyl)triphenylphosphonium salt ([18F]FPTP), as
+ﬂuorine-18 has better signal to noise ratio than Oxygen-15 and
+Rubidium-82.
+
+2.2. Multi-atlas based segmentation
+2.2.1. Generation of multiple atlases
+The static PET images were cropped to include only the cardiac and
+surrounding activities and reoriented along the heart axis to form shortaxis slices using FIRE software [24]. The whole left ventricular myocardium in each short-axis slice (n = 13 or 14 depending on the animal)
+was segmented manually and further divided into 24 angular segments
+(Δθ = 15°) as shown in Fig. 1. Accordingly, the total number of myocardial ROIs in each atlas was 312 or 336. The myocardial ROIs were
+also merged into 17 segments following the American Heart Association
+standards. The LV ROIs needed to obtain the arterial input function
+were drawn on the center of the LV cavity through 14 short-axis slices
+with the size of 2–10 voxels per slice to avoid the spill-over contamination from the myocardial activity.
+2.2.2. Atlas-based segmentation
+Fig. 2 shows the schematic diagrams of the single-atlas (a) and
+multi-atlas (b) based segmentation methods. In the conventional singleatlas based segmentation as shown in Fig. 2a, a template was developed
+by averaging the static shot-axis images spatially normalized into a
+single representative image. In the template formation, we used aﬃneonly spatial normalization with 12 transformation parameters (translation, rotation, scaling, and shearing × 3 axes). The ROIs were deﬁned
+on the single representative image (template) in the above-mentioned
+way. Thereafter, each source image was spatially normalized into the
+template using an aﬃne plus a nonlinear transformation. The predeﬁned ROIs were applied to the spatially normalized image to obtain
+the regional count information. Time-activity curves were obtained by
+applying the same spatial normalization parameters (aﬃne plus nonlinear) and ROIs to each frame data of the dynamic PET. Performing the
+inverse transformation of the template and ROIs into the individual
+image space is an alternative way to reduce the processing time required for resampling all the dynamic frames. However, we did not use
+this method because of potential interpolation errors that make the
+inverse transformation and resampling of small ROIs inappropriate.
+The core procedure in the multi-atlas based segmentation, shown in
+Fig. 2b, is the similarity measurement between the source image and
+
+2. Materials and methods
+2.1. Data set
+The [18F]FPTP PET dataset acquired in our previous study for the
+tracer kinetic analysis of this radiotracer was retrospectively used [23],
+but all PET images were realigned to the one of the images and ROIs
+were also newly drawn on the realigned PET images. All the preclinical
+procedures were approved by the Chonnam National University Animal
+Research Committee and the Guide for the Care and Use of Laboratory
+33
+
+Physica Medica 58 (2019) 32–39
+
+S.J.W. Kim et al.
+
+a
+Source image
+Image 1
+Target image
+
+Single template
+
+Image 2
+
+T
+Averaging
+
+·
+·
+·
+Spatial normalization
+onto to a single
+target image
+
+Image N
+
+Spatially
+normalized
+image
+
+Pre-defined ROIs
+on template
+
+b
+
+r2=0.88
+
+Source image
+
+r2=0.45
+
+Multiple
+templates
+and
+pre-defined
+ROIs
+
+r2=0.78
+
+Spatial
+normalization
+
+·
+·
+·
+Best-matched
+template for a
+source image
+and ROIs
+
+r2=0.91
+
+Fig. 2. Schematic diagram of the single-atlas (a) and multi-atlas (b) based segmentation methods.
+
+2.3. Performance evaluation
+
+template. Commonly used similarity measures include the voxel-wise
+correlation, root-mean square error (RMSE), and mutual information
+between each template and spatially normalized source image into the
+template.
+There are several diﬀerent approaches to the multi-atlas based
+segmentation depending on how one utilizes this similarity measure to
+select or generate the atlas-based ROIs [25–27]. One of these approaches is the generation of a probabilistic atlas using the similarity
+measure as a weight optimizer for each source image.
+Another way is the selection of the best matched optimal atlas that
+yields the highest similarity measure. In this study, we adopted the
+latter approach along with voxel-wise Pearson’s correlation and RMSE
+as the similarity measures. The RMSE was calculated after the count
+normalization of each image to the average count of highest 30 voxels.
+The template with the highest correlation and lowest RMSE was selected as the best-matching template. Regional time-activity curves
+were obtained in the same way as in the single-atlas based segmentation. The Statistical Parametric Mapping (SPM) program (http://ﬁl.ion.
+ucl.ac.uk) was used for all the spatial normalization procedures.
+
+The performance of single-atlas and multi-atlas based segmentation
+methods were compared using leave-one-out cross-validation. That is,
+each one of the 12 PET images was analyzed using the single-atlas
+method, composed of the other 11 images (single-atlas based) or the
+best-matching atlas, selected from the other 11 images (multi-atlas
+based). In the single-atlas based approach, the initial image required for
+the atlas (template and ROIs) formation was randomly selected from
+the 11 images. In the multi-atlas based approach, the other 11 images,
+except for the source image itself and ROIs drawn on each of them,
+were used as the multiple atlases. The similarity of the source image
+and best-matching image was evaluated with Dice similarity coeﬃcient
+using the masked images obtained by applying the threshold of 70% of
+maximum counts in each image.
+For qualitative and quantitative comparisons, we generated polar
+maps of kinetic parameters. These were estimated using compartmental
+modeling applied to the dynamic PET images. The parametric images of
+kinetic parameters (K1: uptake, k2: clearance, Va: blood volume
+34
+
+Physica Medica 58 (2019) 32–39
+
+S.J.W. Kim et al.
+
+b
+
+c
+
+d
+
+Vertical long
+
+Short Axis
+
+Horizontal long
+
+a
+
+Fig. 3. Best-matching template selection. (a) Source image. (b) Spatially normalized image onto the best-matching template. (c) Best-matching template (r2 = 0.97).
+(d) Worst-matching template (r2 = 0.63; arrows indicate the unmatched regions between source and template images).
+
+3.2. Comparison between Single-atlas and multi-atlas based approaches
+
+fraction) were produced using two-compartment models and the basis
+function method as described in [23]. Thereafter, the polar maps of
+perfusion, α·K1 (α = 1 − Va) [28], were developed by applying 1) the
+manual ROIs drawn on each image, 2) single-atlas based ROIs, and 3)
+multi-atlas based ROIs to the parametric images. The correlation between the kinetic parameters obtained using the atlas-based methods
+and manual ROIs were assessed using Pearson’s correlation.
+
+Fig. 6 shows the polar maps of myocardial perfusion generated in a
+representative case using manually drawn ROIs (a), multi-atlas based
+ROIs (b), and single-atlas based ROIs (c). The single-atlas and multiatlas based ROIs yielded remarkably diﬀerent perfusion distributions:
+only the multi-atlas based segmentation exhibited equivalent results
+with the manual segmentation as shown in Fig. 6.
+Fig. 7 shows the linear regression results and Bland-Altman plots for
+the multi-atlas based versus manually-drawn ROIs (a) and single-atlas
+based versus manual ROIs (b). All the segmental perfusion values
+(n = 204) obtained from the 12 rats were included in the analysis. The
+multi-atlas based segmentation method yielded a higher correlation
+with the manual segmentation method (r2 = 0.92) than the correlation
+obtained by the single-atlas based one with the manual segmentation
+method (r2 = 0.88). The underestimation of perfusion obtained by applying the single-atlas based segmentation was remarkable in the ROIs
+with high perfusion values.
+
+3. Results
+3.1. Template selection
+Fig. 3 shows the result of the best-matching template selection in the
+multi-atlas based cardiac segmentation for a representative [18F]FPTP
+rat PET data (source image) in which the severe perfusion defect is
+shown in the anterolateral wall of myocardium. The best-matching
+template as shown in Fig. 3c, yielding the highest voxel-wise correlation (r2 = 0.97) and lowest RMSE (0.0063) with the spatially normalized image as shown in Fig. 3b, exhibits very similar tracer distribution
+with the source image as shown in Fig. 3a in terms of the location and
+intensity of the lesion. For comparison, the worst-matching template
+with the lowest correlation (r2 = 0.63) is shown in Fig. 3d. There was a
+remarkable diﬀerence between the worst-matching template and the
+source image. The results of the voxel-wise comparison between the
+source image and the other 11 template candidates are presented in
+Fig. 4.
+The range of square of correlation coeﬃcient (r2), the RMSE and the
+best- and worst-matching templates for each source image are summarized in Table 1. In all the images, the template with highest r2
+yielded the lowest RMSE. The r2 and RMSE between the source image
+and the best-matching templates ranged 0.91–0.97 and 0.06–0.11, respectively. Each template exhibited diﬀerent values of r2 and RMSE
+from those of the source images as shown in Table 2.
+The dice similarity coeﬃcient between the source image and bestmatching image was 0.87 ± 0.03.
+The time-activity curves obtained using the manually drawn ROIs
+and the atlas-based segmentation with the best-matching template
+agreed well with each other as shown in Fig. 5.
+
+4. Discussion
+The atlas-based segmentation is a robust method that has been
+mainly used for brain image analysis in nuclear medicine. The singleatlas based one is computationally eﬃcient because it requires only the
+single execution of spatial normalization [29]. However, the accuracy
+of this approach is limited because one cannot perfectly deal with the
+change of morphology and tracer distribution in severe pathological
+conditions with the single atlas or template. The multi-atlas based
+segmentation involves a greater computational burden than the singleatlas based one; however, the enhanced accuracy in the assessment of
+tracer uptake and quantitative parameters, as evidenced in this study,
+can justify its use for nuclear medicine image analysis [25–27]. In addition, cost eﬀective parallel computation tools are widely available
+now.
+In this study, we suggested the multi-atlas based segmentation for
+cardiac PET images and veriﬁed its performance by comparing it to the
+manual segmentation. The multi-atlas based segmentation outperformed the conventional single-atlas based one in comparison to
+manual segmentation. Although only the cardiac PET images of
+35
+
+Physica Medica 58 (2019) 32–39
+
+S.J.W. Kim et al.
+60
+
+60
+
+60
+
+T2, r2 = 0.89
+
+T1, r2 = 0.91
+
+60
+
+T3, r2 = 0.86
+
+40
+
+40
+
+40
+
+40
+
+20
+
+20
+
+20
+
+20
+
+0
+
+0
+
+60
+
+10
+
+20
+
+30
+
+0
+
+0
+
+60
+
+T5, r2 = 0.45
+
+10
+
+20
+
+0
+
+30
+
+0
+
+60
+
+T6, r2 = 0.77
+
+10
+
+20
+
+30
+
+0
+
+40
+
+40
+
+40
+
+20
+
+20
+
+20
+
+20
+
+0
+
+10
+
+20
+
+30
+
+0
+
+0
+
+20
+
+0
+
+30
+
+T10, r2 = 0.86
+
+T9, r2 = 0.42
+40
+
+40
+
+20
+
+20
+
+20
+
+0
+
+10
+
+20
+
+30
+
+0
+
+10
+
+20
+
+0
+
+30
+
+20
+
+30
+
+T8, r2 = 0.79
+
+0
+
+10
+
+20
+
+30
+
+T12, r2 = 0.92
+
+40
+
+0
+
+0
+
+10
+
+60
+
+60
+
+60
+
+10
+
+0
+
+60
+
+T7, r2 = 0.44
+
+40
+
+0
+
+T4, r2 = 0.82
+
+0
+
+10
+
+20
+
+0
+
+30
+
+Worst template
+
+0
+
+10
+
+20
+
+30
+
+Best template
+
+Fig. 4. Voxel-wise comparison between a source image (image 11) and the other 11 template candidates (templates 1–10 and 12).
+Table 1
+The range of square of correlation coeﬃcient (r2) and root-mean-square error
+(RMSE) of normalized count for each source image.
+
+Table 2
+The range of square of correlation coeﬃcient (r2) and root-mean-square error
+(RMSE) of normalized count for each template.
+
+Source Image (#)
+
+r2
+
+RMSE
+
+Template (#)
+
+r2
+
+RMSE
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+
+0.67–0.96
+0.47–0.97
+0.63–0.97
+0.73–0.95
+0.57–0.93
+0.67–0.96
+0.55–0.95
+0.42–0.94
+0.51–0.91
+0.65–0.95
+0.42–0.92
+0.69–0.95
+
+0.06–0.15
+0.06–0.26
+0.06–0.18
+0.07–0.15
+0.05–0.22
+0.07–0.16
+0.06–0.22
+0.09–0.21
+0.11–0.23
+0.07–0.16
+0.10–0.25
+0.08–0.15
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+
+0.91–0.97
+0.75–0.96
+0.71–0.96
+0.77–0.91
+0.45–0.89
+0.77–0.92
+0.42–0.88
+0.79–0.91
+0.42–0.81
+0.74–0.92
+0.51–0.91
+0.89–0.97
+
+0.06–0.12
+0.08–0.20
+0.06–0.17
+0.07–0.13
+0.06–0.23
+0.07–0.14
+0.05–0.21
+0.10–0.16
+0.12–0.26
+0.07–0.13
+0.11–0.23
+0.06–0.11
+
+Average
+
+0.58–0.95
+
+0.07–0.20
+
+Average
+
+0.68–0.92
+
+0.08–0.17
+
+error in the registration of soft tissue that is considered extremely difﬁcult [30,31].
+The main advantage of the proposed multi-atlas based cardiac
+segmentation method is that it does not require any prior information
+on the tracer distribution to be incorporated into the image segmentation algorithms. In this proposed method, no adjustment of any
+threshold or regularization parameters is necessary. Therefore, the
+same procedure, as shown in Fig. 2b, can be applied to any other
+routinely used or investigative cardiac PET or SPECT imaging agents
+without modiﬁcation. In addition, there is no need to provide initial
+seed pixel or ROI for contour evolving [16]. However, the accurate
+segmentation of myocardium to compose the multiple atlases is a prerequisite step demanding manual or semi-automatic delineation of
+
+myocardial infarction model induced by the left coronary artery ligation were employed in this study, the voxel-wise correlation between a
+single template and the other spatially normalized images onto the
+template was highly variable as shown in Table 2. Consequently, the
+single-atlas based segmentation yielded a larger discrepancy relative to
+the manual segmentation in the quantiﬁcation of the perfusion parameter as shown in Fig. 7b. On the contrary, the best-matching templates
+in the multi-atlas based segmentation exhibited over 0.90 voxel-wise
+correlation for all source images. This high correlation between the
+template and source images in each individual data analysis led to the
+excellent agreement level in the segmental analysis of perfusion parameter as shown in Figs. 6 and 7. The close proximity between source
+image and best matched template would be useful for minimizing the
+36
+
+Physica Medica 58 (2019) 32–39
+
+90
+80
+70
+60
+50
+40
+30
+20
+10
+0
+
+Segment 1
+
+0
+
+5
+
+10
+
+Best Template
+Averaged Template
+Manual
+
+15
+
+Activity (counts/sec)
+
+Activity (counts/sec)
+
+S.J.W. Kim et al.
+
+90
+80
+70
+60
+50
+40
+30
+20
+10
+0
+
+20
+
+Segment 5
+
+0
+
+5
+
+Activity (counts/sec)
+
+Activity (counts/sec)
+
+Segment 12
+
+0
+
+5
+
+10
+
+15
+
+20
+
+Time(min)
+
+Time(min)
+90
+80
+70
+60
+50
+40
+30
+20
+10
+0
+
+10
+
+Best Template
+Averaged Template
+Manual
+
+Best Template
+Averaged Template
+Manual
+
+15
+
+20
+
+90
+80
+70
+60
+50
+40
+30
+20
+10
+0
+
+Segment 17
+
+0
+
+5
+
+10
+
+Best Template
+Averaged Template
+Manual
+
+15
+
+20
+
+Time(min)
+
+Time(min)
+
+Fig. 5. Time-activity curves obtained using the multi-atlas (●) (a) and single-atlas (○) based segmentation. The solid line was obtained using the manual ROIs.
+
+b
+
+c
+
+4.5
+
+ml/min/g
+
+a
+
+0.0
+Fig. 6. Polar maps of myocardial perfusion generated in a representative case using manually drawn (a), multi-atlas based (b), and single-atlas based (c) ROIs.
+
+will be a useful method to compare the performance of diﬀerent approaches for myocardial segmentation [32,38,39].
+
+endocardial and epicardial boundaries of the left ventricular myocardium. The necessary number of atlases for suﬃciently good segmentation results would depend on the variability of image patterns in
+normal and pathological conditions. Further investigation is warranted
+to determine the required number of atlases for more diverse cases of
+cardiovascular diseases. It should be also investigated whether diﬀerent
+reconstruction algorithms (for example, the most recent iterative reconstruction algorithms with resolution modeling in respect to FBP) or
+cardiac motion (gated images instead of summed ones) inﬂuence the
+result of the study. Because the advanced reconstruction algorithms and
+cardiac gated images yield better contrast between the myocardium and
+blood pool and thinner thickness of myocardium, diﬀerent reconstruction algorithms or cardiac motion management would lead to
+decreased correlation between the template and individual source
+image. Although it is likely that same best matched optimal atlas will be
+selected by the similarity measure used in this study, the performance
+of spatial resolution would be more inﬂuenced by the reconstruction
+algorithms and cardiac motion management. Whether denoising images
+will improve our template-based segmentation is an interesting future
+research topic [32]. In addition, segmenting myocardium in PET using
+fast-growing deep learning approach that outperforms conventional
+signal and image processing algorithms for some applications is of interest [33–37]. Also, the generation of synthetic lesions in PET images
+
+5. Conclusions
+We developed a multi-atlas based cardiac segmentation method for
+a ﬂuorine-18 labeled cardiac PET imaging agent and demonstrated its
+feasibility by comparing the quantitative perfusion parameter values
+obtained using the proposed method with those obtained by manual
+segmentation. The similarity between the template and spatially normalized source image was signiﬁcantly higher in the multi-atlas based
+approach than in the single-atlas based approach.
+
+Acknowledgments
+This work was supported by grants from the Korea Healthcare
+Technology R&D Project, Ministry of Health & Welfare, Republic of
+Korea (HI13C0163020015) and the National Research Foundation of
+Korea (NRF) funded by the Korean Ministry of Science and ICT (grant
+no. NRF-2014M3C7034000 and NRF-2016R1A2B3014645). The
+funding source had no involvement in the study design, collection,
+analysis, or interpretation.
+37
+
+Physica Medica 58 (2019) 32–39
+
+S.J.W. Kim et al.
+
+Single atlas
+
+2
+
+2
+
+1
+
+1
+
+Difference
+
+Difference
+
+Multi atlas
+
+0
+-1
+-2
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+0
+-1
+-2
+
+7
+
+0
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+Average
+
+Average
+
+Fig. 7. Linear regression results and Bland-Altman plots for multi-atlas based versus manual ROIs (a) and single-atlas based versus manual ROIs (b).
+myocardial blood ﬂow using dynamic H215O PET and factor analysis. J Nucl Med
+2001;42:782–7.
+[10] Lee JS, Lee DD, Choi S, Lee DS. Application of nonnegative matrix factorization to
+dynamic positron emission tomography. In: 3rd Int. Conf. on Independent
+Component Analysis and Blind Signal Separation 2001. 629-32.
+[11] Lee JS, Lee DS, Ahn JY, Cheon GJ, Kim SK, Yeo JS, et al. Blind separation of cardiac
+components and extraction of input function from H215O dynamic myocardial PET
+using independent component analysis. J Nucl Med 2001;42:938–43.
+[12] Harms HJ, Knaapen P, de Haan S, Halbmeijer R, Lammertsma AA, Lubberink M.
+Automatic generation of absolute myocardial blood ﬂow images using [15O]H2O
+and a clinical PET/CT scanner. Eur J Nucl Med Mol Imaging 2011;38:930–9.
+[13] Pluempitiwiriyawej C, Moura JM, Wu YJ, Ho C. STACS: New active contour scheme
+for cardiac MR image segmentation. IEEE Trans. Med. Imaging 2005;24:593–603.
+[14] Cheng-Liao J, Qi J. Segmentation of mouse dynamic PET images using a multiphase
+level set method. Phys Med Biol 2010;55:6549–69.
+[15] Kang HC, Kim B, Lee J, Shin J, Shin Y-G. Automatic left and right heart segmentation using power watershed and active contour model without edge. Biomed Eng
+Lett 2014;4:355–61.
+[16] Abdalbari A, Ren J, Green M. Seeds classiﬁcation for image segmentation based on
+3-D aﬃne moment invariants. Biomed Eng Lett 2016;6:224–33.
+[17] Hajiaghayi M, Groves EM, Jafarkhani H, Kheradvar A. A 3-D active contour method
+for automated segmentation of the left ventricle from magnetic resonance images.
+IEEE Trans Biomed Eng 2017;64:134–44.
+[18] Germano G, Kiat H, Kavanagh PB, Moriel M, Mazzanti M, Su HT, et al. Automatic
+quantiﬁcation of ejection fraction from gated myocardial perfusion SPECT. J Nucl
+Med 1995;36:2138–47.
+[19] Slomka PJ, Alexanderson E, Jacome R, Jiménez M, Romero E, Meave A, et al.
+Comparison of clinical tools for measurements of regional stress and rest myocardial blood ﬂow assessed with 13N-ammonia PET/CT. J Nucl Med
+2012;53:171–81.
+[20] Kang KW, Lee DS, Cho JH, Lee JS, Yeo JS, Lee SK, et al. Quantiﬁcation of F-18 FDG
+PET images in temporal lobe epilepsy patients using probabilistic brain atlas.
+Neuroimage 2001;14:1–6.
+[21] Lee DS, Lee JS, Oh SH, Kim SK, Kim JW, Chung JK, et al. Cross-modal plasticity and
+cochlear implants. Nature 2001;409:149–50.
+[22] Lee SK, Lee DS, Yeo JS, Lee JS, Kim YK, Jang MJ, et al. FDG-PET images quantiﬁed
+by probabilistic atlas of brain and surgical prognosis of temporal lobe epilepsy.
+
+Compliance with ethical standards
+Conﬂict of interest: The authors declare that they have no conﬂict of
+interest.
+References
+[1] Iida H, Kanno I, Takahashi A, Miura S, Murakami M, Takahashi K, et al.
+Measurement of absolute myocardial blood ﬂow with H215O and dynamic positronemission tomography. Strategy for quantiﬁcation in relation to the partial-volume
+eﬀect. Circulation 1988;78:104–15.
+[2] Lee JS, Lee DS, Ahn JY, Yeo JS, Cheon GJ, Kim SK, et al. Generation of parametric
+image of regional myocardial blood ﬂow using H215O dynamic PET and a linear
+least-squares method. J Nucl Med 2005;46:1687–95.
+[3] Sherif HM, Nekolla SG, Saraste A, Saraste A, Reder S, Yu M, et al. Simpliﬁed
+quantiﬁcation of myocardial ﬂow reserve with ﬂurpiridaz F 18: validation with
+microspheres in a pig model. J Nucl Med 2011;52:617–24.
+[4] Wells RG, Timmins R, Klein R, Lockwood J, Marvin B, deKemp RA, et al. Dynamic
+SPECT measurement of absolute myocardial blood ﬂow in a porcine model. J Nucl
+Med 2014;55:1685–91.
+[5] Nkoulou R, Fuchs TA, Pazhenkottil AP, Kuest SM, Ghadri JR, Stehli J, et al. Absolute
+myocardial blood ﬂow and ﬂow reserve assessed by gated SPECT with cadmium–zinc–telluride detectors using 99mTc-Tetrofosmin: head-to-head comparison with
+13
+N-ammonia PET. J Nucl Med 2016;57:1887–92.
+[6] Lee JS, Kovalski G, Sharir T, Lee DS. Advances in imaging instrumentation for
+nuclear cardiology. J Nucl Cardiol 2017. https://doi.org/10.1007/s12350-0170979-8.
+[7] Nesterov SV, Deshayes E, Sciagrà R, Settimo L, Declerck JM, Pan XB, et al.
+Quantiﬁcation of myocardial blood ﬂow in absolute terms using 82Rb PET imaging:
+the RUBY-10 study. JACC: Cardiovascular Imaging 2014;7:1119–27.
+[8] Dunet V, Klein R, Allenbach G, Renaud J, Prior JO. Myocardial blood ﬂow quantiﬁcation by Rb-82 cardiac PET/CT: a detailed reproducibility study between two
+semi-automatic analysis programs. J Nucl Cardiol 2016;23:499–510.
+[9] Ahn JY, Lee DS, Lee JS, Kim SK, Cheon GJ, Yeo JS, et al. Quantiﬁcation of regional
+
+38
+
+Physica Medica 58 (2019) 32–39
+
+S.J.W. Kim et al.
+
+[31] Ren J, Green M, Huang X, Abdalbari A. Automatic error correction using adaptive
+weighting for vessel-based deformable image registration. Biomed Eng Lett
+2017;7:173–81.
+[32] Huerga C, Glaría L, Castro P, Alejo L, Bayón J, Guibelalde E. Segmentation improvement through denoising of PET images with 3D-context modelling in wavelet
+domain. Phys Med 2018;53:62–71.
+[33] Mansour RF. Deep-learning-based automatic computer-aided diagnosis system for
+diabetic retinopathy. Biomed Eng Lett 2018;8:41–57.
+[34] Dey D, Chaudhuri S, Munshi S. Obstructive sleep apnoea detection using convolutional neural network based deep learning framework. Biomed Eng Lett
+2018;8:95–100.
+[35] Park J, Hwang D, Kim KY, Kang SK, Kim YK, Lee JS. Computed tomography superresolution using deep convolutional neural network. Phys Med Biol
+2018;63:145011.
+[36] Hwang D, Kim KY, Kang SK, Seo S, Paeng JC, Lee DS, et al. Improving the accuracy
+of simultaneously reconstructed activity and attenuation maps using deep learning.
+J Nucl Med 2018;59:1624–9.
+[37] Kang SK, Seo S, Shin SA, Byun MS, Lee DY, Kim YK, et al. Adaptive template
+generation for amyloid PET using a deep learning approach. Hum Brain Mapp 2018.
+[38] Berthon B, Häggström I, Apte A, Beattie BJ, Kirov AS, Humm JL, et al. PETSTEP:
+Generation of synthetic PET lesions for fast evaluation of segmentation methods.
+Phys. Med 2015;31:969–80.
+[39] Gui L, Li C, Yang X. Medical image segmentation based on level set and isoperimetric constraint. Phys Med 2017;42:162–73.
+
+Epilepsia 2002;43:1032–8.
+[23] Kim JW, Seo S, Kim HS, Kim DY, Lee HY, Kang KW, et al. Comparative evaluation of
+the algorithms for parametric mapping of the novel myocardial PET imaging agent
+18
+F-FPTP. Ann Nucl Med 2017;31:469–79.
+[24] Lee JS, Park KS, Lee DS, Lee CW, Chung JK, Lee MC. Development and applications
+of a software for Functional Image Registration (FIRE). Comput. Methods Programs
+Biomed 2005;78:157–64.
+[25] Aljabar P, Heckemann RA, Hammers A, Hajnal JV, Rueckert D. Multi-atlas based
+segmentation of brain images: atlas selection and its eﬀect on accuracy.
+Neuroimage 2009;46:726–38.
+[26] Lötjönen JM, Wolz R, Koikkalainen JR, Thurfjell L, Waldemar G, Soininen H, et al.
+Fast and robust multi-atlas segmentation of brain magnetic resonance images.
+Neuroimage 2010;49:2352–65.
+[27] Wang H, Suh JW, Das SR, Pluta JB, Craige C, Yushkevich PA. Multi-atlas segmentation with joint label fusion. IEEE Trans Pattern Anal Machine Intel
+2013;35:611–23.
+[28] Iida H, Rhodes CG, de Silva R, Yamamoto Y, Araujo LI, Maseri A, et al. Myocardial
+tissue fraction—correction for partial volume eﬀects and measure of tissue viability.
+J Nucl Med 1991;32:2169–75.
+[29] Lee JS, Lee DS, Kim SK, Lee SK, Chung JK, Lee MC, et al. Localization of epileptogenic zones in F-18 FDG brain PET of patients with temporal lobe epilepsy
+using artiﬁcial neural network. IEEE Trans Med Imaging 2000;19:347–55.
+[30] Huang X, Ren J, Abdalbari A, Green M. Vessel-based fast deformable registration
+with minimal strain energy. Biomed Eng Lett 2016;6:47–55.
+
+39
+
+
