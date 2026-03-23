@@ -1,7 +1,7 @@
 """
 Save all report figures for Exercises 2.1 and 2.2.
 Run from the notebooks/ directory:
-    ../.venv-1/bin/python save_ex21_ex22_figures.py
+    ../.venv/bin/python save_ex21_ex22_figures.py
 
 Exercise 2.1 figures saved to: report_figures/exercise_2_1/
     kspace_magnitude_all_coils.png   — log-scaled k-space magnitude, all 6 coils
