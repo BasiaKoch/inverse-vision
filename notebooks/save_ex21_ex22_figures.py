@@ -55,6 +55,30 @@ def fliprot(img):
     """Match the practical-notebook display orientation."""
     return np.flipud(np.rot90(img))
 
+
+CORNER_SIZE = 20
+
+
+def background_corner_std(img, size=CORNER_SIZE):
+    corners = np.concatenate([
+        img[:size, :size].ravel(),
+        img[:size, -size:].ravel(),
+        img[-size:, :size].ravel(),
+        img[-size:, -size:].ravel(),
+    ])
+    return float(np.std(corners))
+
+
+def central_mean(img, half=40):
+    cy, cx = img.shape[0] // 2, img.shape[1] // 2
+    return float(np.mean(img[cy - half : cy + half, cx - half : cx + half]))
+
+
+def mean_gradient_magnitude(img):
+    gy, gx = np.gradient(img)
+    grad = np.sqrt(gx**2 + gy**2)
+    return float(np.mean(grad))
+
 # ── Reconstruct all coils ─────────────────────────────────────────────────────
 print("Reconstructing images (ifft2 of ifftshift'd k-space)...")
 images = np.zeros_like(kspace)
@@ -278,17 +302,26 @@ plt.close(fig)
 print(f"  → {DIR_22}/part_b_magnitude_phase.png")
 
 # ── Part (c): denoise each coil magnitude image, then combine with RSS ────────
-rss_median    = combine_coils_rss(median_denoised)
-rss_gauss     = combine_coils_rss(gauss_denoised)
-rss_bilateral = combine_coils_rss(bilateral_denoised)
-vmax_rss      = rss.max()
+rss_original = np.sqrt(np.sum(magnitude_images**2, axis=0))
+rss_median = np.sqrt(np.sum(median_denoised**2, axis=0))
+rss_gauss = np.sqrt(np.sum(gauss_denoised**2, axis=0))
+rss_bilateral = np.sqrt(np.sum(bilateral_denoised**2, axis=0))
+
+methods_rss = {
+    "Original RSS": rss_original,
+    "Median then RSS": rss_median,
+    "Gaussian then RSS": rss_gauss,
+    "Bilateral then RSS": rss_bilateral,
+}
+
+vmax_rss = rss_original.max()
 
 # Figure 1: original vs median-denoised + difference map
 print("Saving Part (c) — combined comparison (3 panels)...")
-diff_map = np.abs(rss - rss_median)
+diff_map = np.abs(rss_original - rss_median)
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 6))
-im0 = axes[0].imshow(fliprot(rss), cmap="gray", vmin=0, vmax=vmax_rss)
+im0 = axes[0].imshow(fliprot(rss_original), cmap="gray", vmin=0, vmax=vmax_rss)
 axes[0].set_title("RSS — original", fontsize=11, fontweight="semibold")
 axes[0].axis("off")
 plt.colorbar(im0, ax=axes[0], fraction=0.046, pad=0.04)
@@ -312,16 +345,23 @@ fig.savefig(f"{DIR_22}/part_c_combined.png", dpi=200, bbox_inches="tight")
 plt.close(fig)
 print(f"  → {DIR_22}/part_c_combined.png")
 
+print(
+    "\nFinal RSS descriptive summary "
+    f"(same four {CORNER_SIZE}x{CORNER_SIZE} corner ROIs and central 80x80 ROI as coil 0)"
+)
+print("Note: background std here is a simple denoising proxy, not a physical SNR estimate.")
+print(f"{'Method':<20}  {'Background std':>14}  {'Central mean':>13}  {'Mean grad':>11}")
+print("-" * 74)
+for name, img in methods_rss.items():
+    bg = background_corner_std(img)
+    cm = central_mean(img)
+    mg = mean_gradient_magnitude(img)
+    print(f"{name:<20}  {bg:>14.5f}  {cm:>13.5f}  {mg:>11.5f}")
+
 # Figure 2: all three methods on the combined image
 print("Saving Part (c) — all-methods comparison (4 panels)...")
 fig, axes = plt.subplots(1, 4, figsize=(24, 6))
-panels_c = [
-    (rss,           "Original RSS"),
-    (rss_gauss,     f"Gaussian  σ={SIGMA_GAUSS}"),
-    (rss_median,    f"Median  {MEDIAN_SIZE}×{MEDIAN_SIZE}"),
-    (rss_bilateral, "Bilateral"),
-]
-for ax, (img, title) in zip(axes, panels_c):
+for ax, (title, img) in zip(axes, methods_rss.items()):
     im = ax.imshow(fliprot(img), cmap="gray", vmin=0, vmax=vmax_rss)
     ax.set_title(title, fontsize=11, fontweight="semibold")
     ax.axis("off")
