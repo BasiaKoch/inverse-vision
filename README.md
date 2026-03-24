@@ -9,7 +9,7 @@ University of Cambridge · Submission: 23:59 Wednesday 1 April 2026
 
 | Module | Topic | Notebook |
 |--------|-------|----------|
-| 1 | CT tomographic reconstruction (dose reduction, limited-angle, FBP filters, iterative methods) | `notebooks/exercise_1.1.ipynb`, `exercise_1.2.ipynb`, `exercise_1.3.ipynb` |
+| 1 | CT tomographic reconstruction (dose reduction, limited-angle, FBP filters, iterative methods) | `notebooks/exercise_1.1.ipynb`, `notebooks/exercise_1.2.ipynb`, `notebooks/exercise_1.3.ipynb` |
 | 2 | MRI k-space visualisation, reconstruction, and denoising | `notebooks/exercise_2.1_2.2.ipynb` |
 | 3 | Image segmentation literature review | Written report only — no AI |
 
@@ -85,7 +85,7 @@ The RSS image provides more uniform spatial coverage than any individual coil.
 
 Background std is measured from four 20 × 20 corner ROIs — a smoothing proxy, not a physical SNR. Central-region mean is preserved by all three filters (< 0.4% change), confirming no signal suppression in the anatomy.
 
-Gaussian gives the strongest uniform smoothing. Bilateral matches Gaussian's noise reduction while retaining sharper cortical bone and cartilage margins. Median is the practical baseline.
+Gaussian gives the strongest uniform smoothing. On the final RSS-combined images, Gaussian-then-RSS gives the lowest corner-ROI background standard deviation, median-then-RSS gives a milder reduction, and bilateral-then-RSS retains a higher mean gradient but does not reduce this background proxy relative to the original RSS image. These are descriptive image statistics rather than ground-truth quality metrics.
 
 **Butterworth k-space filter** (Exercise 2.2, Part b) applied to the original noisy k-space of coil 0:
 ```
@@ -115,13 +115,14 @@ where `u, v` are pixel offsets from the k-space centre. The mask is multiplied d
 ├── tests/
 │   └── test_mri.py             # 30 unit tests for the MRI module
 │
-├── notebooks/                  # All exercise notebooks (primary deliverable)
+├── notebooks/                  # Exercise notebooks, export scripts, and report_figures/
 │
 ├── .github/workflows/ci.yml    # GitHub Actions CI (lint + test)
 ├── pyproject.toml              # Project metadata and tool configuration
 ├── requirements.txt            # Pinned runtime dependencies
 ├── requirements-notebooks.txt  # Jupyter/notebook extras
 ├── Dockerfile                  # Reproducible container environment
+├── report.txt                  # Coursework report source
 ├── CONTRIBUTING.md
 └── LICENSE
 ```
@@ -164,7 +165,18 @@ pip install -r requirements-notebooks.txt
 jupyter lab
 ```
 
-Open the relevant notebook under `notebooks/`. All figures are saved to `notebooks/report_figures/` automatically.
+Open the relevant notebook under `notebooks/`. Report figures are stored under `notebooks/report_figures/`.
+
+For reproducible report-figure export, helper scripts are provided:
+
+```bash
+cd notebooks
+../.venv/bin/python save_ex11_figures.py
+../.venv/bin/python save_ex12_figures.py
+../.venv/bin/python save_ex21_ex22_figures.py
+```
+
+Exercise 1.3 and Exercise 2.1/2.2 also include in-notebook figure-saving helpers that write under `notebooks/report_figures/` when the relevant cells are run.
 
 ---
 
