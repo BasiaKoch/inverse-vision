@@ -30,9 +30,9 @@ I = I₀ exp(−p),   I_noisy ~ Poisson(I + N(0,σ²)),   p_noisy = −log(I_noi
 
 **Gradient Descent (SIRT-style)** iteratively minimises the sinogram residual:
 ```
-x_{k+1} = clip( x_k − γ · Aᵀ(Ax_k − b),  0 )
+x_{k+1} = x_k − γ · Aᵀ(Ax_k − b)
 ```
-running for up to 200 iterations with `γ = 0.001` and a non-negativity constraint.
+running for up to 200 iterations with `γ = 0.001`.
 
 **Subset GD (OS-SART-style)** splits the 360 projections into S = 10 ordered subsets and performs one update per subset per epoch, yielding S updates per epoch.
 

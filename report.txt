@@ -39,7 +39,7 @@ I_{\text{noisy}} \sim \mathrm{Poisson}\!\left(I + \mathcal{N}(0,\sigma^2)\right)
 p_{\text{noisy}} = -\log\!\left(\tfrac{I_{\text{noisy}}}{I_0}\right), \quad \sigma=0.05.
 \]
 Each sinogram was reconstructed with ramp-filtered FBP and with Gradient Descent
-(GD, 200 iterations, $\gamma=0.001$, non-negativity constraint).
+(GD, 200 iterations, $\gamma=0.001$).
 
 \begin{figure}[h!]
 \centering
@@ -54,7 +54,8 @@ Each sinogram was reconstructed with ramp-filtered FBP and with Gradient Descent
 \end{figure}
 
 \paragraph{Reconstruction methods: FBP vs Gradient Descent}
-I have then reconstructed the 9 noisy sinograms using both FBP and Gradient Descent (GD). For each $(I_0,\text{views})$ setting, ramp-filtered FBP was applied directly to the sinograms. GD was then applied to the same data, starting from a zero image and running 200 iterations with $\gamma=0.001$ and a non-negativity constraint. Projection residual loss and image-domain MSE were logged after each update. Final reconstructions were evaluated using MSE, PSNR, and SSIM.
+I have then reconstructed the 9 noisy sinograms using both FBP and Gradient Descent (GD). For each $(I_0,\text{views})$ setting, ramp-filtered FBP was applied directly to the sinograms. GD was then applied to the same data, starting from a zero image and running 200 iterations with $\gamma=0.001$. Projection residual loss and image-domain MSE were logged after each update. Final reconstructions were evaluated using MSE, PSNR, and SSIM.
+All reported image-quality metrics were evaluated only inside the circular reconstruction region; therefore these PSNR/SSIM values are masked metrics rather than whole-image scores.
 
 Figure~\ref{fig:ex11_recon} shows representative reconstructions and absolute error maps at low dose ($I_0=10^2$) across different view counts, comparing FBP and GD.
 \subsection*{Results}
@@ -266,7 +267,8 @@ strongest smoothing.
 \begin{table}[H]
 \centering
 \caption{FBP filter comparison on the low-dose case from Exercise~1.1
-($I_0=10^2$, 360 views), evaluated inside the circular reconstruction mask.}
+($I_0=10^2$, 360 views), evaluated inside the circular reconstruction mask.
+These are masked metrics and are not directly comparable to whole-image PSNR/SSIM values.}
 \label{tab:ex13b}
 \small
 \begin{tabular}{lccc}
@@ -295,7 +297,7 @@ low-dose case ($I_0=10^2$, 360 views).
 For the full-batch baseline, I started from a zero image and ran the same
 update rule as in Exercise~1.1 for 100 epochs: forward projection, residual
 calculation, backprojection,
-gradient step with $\gamma=0.001$, and non-negativity clipping.
+gradient step with $\gamma=0.001$.
 
 For the subset method, I split the 360 projections into $S=10$ interleaved
 subsets of 36 angles.
@@ -868,4 +870,3 @@ without a large increase in parameters.
 Qualitative error analysis should then be used to test whether the
 attention-gated version reduces false positives in irrelevant regions.
 \end{document}
-

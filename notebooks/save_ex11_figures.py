@@ -19,7 +19,6 @@ from skimage.metrics import structural_similarity
 from ct_reconstruction.phantom import load_ct_image
 
 plt.rcParams["figure.dpi"] = 150
-np.random.seed(42)
 
 SAVE_DIR = "report_figures/exercise_1_1"
 os.makedirs(SAVE_DIR, exist_ok=True)
@@ -32,7 +31,7 @@ def circular_mask(shape):
     r = min(h, w) / 2.0
     return (yy - cy) ** 2 + (xx - cx) ** 2 <= r ** 2
 
-phantom = load_ct_image("../CT_exercise_1.png", size=256).astype(np.float64)
+phantom = load_ct_image("../CT_exercise_1.png").astype(np.float64)
 mask = circular_mask(phantom.shape)
 phantom[~mask] = 0.0
 
@@ -59,7 +58,7 @@ def reconstruct_gd(sinogram, theta, output_size, gamma=0.001, n_iter=200):
         residual = radon(x, theta=theta, circle=True) - sinogram
         grad     = iradon(residual, theta=theta, filter_name=None,
                           circle=True, output_size=output_size)
-        x = np.clip(x - gamma * grad, 0.0, None)
+        x = x - gamma * grad
     return x
 
 def compute_metrics(reference, reconstruction, mask):
