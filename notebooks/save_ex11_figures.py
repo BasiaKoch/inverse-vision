@@ -4,8 +4,11 @@ Run from the notebooks/ directory:
     ../.venv/bin/python save_ex11_figures.py
 
 Figures saved:
-  report_figures/exercise_1_1/recon_I0_1e2.png   — low-dose reconstruction grid
-  report_figures/exercise_1_1/metrics_heatmap.png — PSNR/SSIM summary across all 9 conditions
+  report_figures/exercise_1_1/recon_I0_1e5.png    — high-dose reconstruction grid
+  report_figures/exercise_1_1/recon_I0_1e3.png    — medium-dose reconstruction grid
+  report_figures/exercise_1_1/recon_I0_1e2.png    — low-dose reconstruction grid
+  report_figures/exercise_1_1/metrics_heatmap.png  — PSNR/SSIM heatmap across all 9 conditions
+  report_figures/exercise_1_1/gd_convergence.png   — GD convergence curves (residual + image MSE)
 """
 import sys, os
 sys.path.insert(0, "..")
@@ -52,13 +55,21 @@ def reconstruct_fbp(sinogram, theta, output_size):
     return iradon(sinogram, theta=theta, filter_name="ramp",
                   circle=True, output_size=output_size)
 
-def reconstruct_gd(sinogram, theta, output_size, gamma=0.001, n_iter=200):
+def reconstruct_gd(sinogram, theta, output_size, gamma=0.001, n_iter=200,
+                   log_convergence=False):
     x = np.zeros((output_size, output_size), dtype=np.float64)
+    residual_losses, image_mse_losses = [], []
     for _ in range(n_iter):
         residual = radon(x, theta=theta, circle=True) - sinogram
-        grad     = iradon(residual, theta=theta, filter_name=None,
-                          circle=True, output_size=output_size)
+        if log_convergence:
+            rel = float(np.sqrt(np.mean(residual ** 2) * sinogram.size)
+                        / (np.linalg.norm(sinogram) + 1e-12))
+            residual_losses.append(rel)
+        grad = iradon(residual, theta=theta, filter_name=None,
+                      circle=True, output_size=output_size)
         x = x - gamma * grad
+    if log_convergence:
+        return x, residual_losses
     return x
 
 def compute_metrics(reference, reconstruction, mask):
@@ -98,76 +109,84 @@ for I0 in I0_list:
         gd_p  = recon_results[I0][n_angles]["gd_m"]["PSNR"]
         print(f"  I0={I0:.0e}  {n_angles:3d} views  FBP {fbp_p:.1f}dB  GD {gd_p:.1f}dB")
 
-# ── FIGURE 1: Low-dose reconstruction grid (I0=1e2, all 3 view counts) ────
-print("Saving Figure 1: low-dose reconstruction comparison...")
+# ── FIGURE 1: Reconstruction grids for each of the three dose levels ──────
+print("Saving Figure 1: reconstruction comparisons for all dose levels...")
 gray_cm = plt.cm.gray.copy();    gray_cm.set_bad("white")
 err_cm  = plt.cm.inferno.copy(); err_cm.set_bad("white")
 def masked(img): return np.ma.masked_where(~mask, img)
 
-I0_show = 1e2
-all_imgs = [phantom] + [recon_results[I0_show][n][k]
-                         for n in n_angles_list for k in ("fbp","gd")]
-all_errs = [np.abs(phantom - recon_results[I0_show][n][k])
-             for n in n_angles_list for k in ("fbp","gd")]
+# Shared intensity scale across ALL 27 reconstructions (for comparability)
+all_imgs_global = [phantom] + [recon_results[I0][n][k]
+                                for I0 in I0_list
+                                for n in n_angles_list
+                                for k in ("fbp", "gd")]
 img_vmin, img_vmax = np.percentile(
-    np.concatenate([v[mask].ravel() for v in all_imgs]), [1, 99])
-err_vmax = float(np.percentile(
-    np.concatenate([v[mask].ravel() for v in all_errs]), 99.5))
+    np.concatenate([v[mask].ravel() for v in all_imgs_global]), [1, 99])
 
-fig = plt.figure(figsize=(12, 8), constrained_layout=True)
-gs  = gridspec.GridSpec(3, 5, figure=fig, width_ratios=[1,1,1,1,0.05])
-col_titles = ["FBP", "FBP error", "GD", "GD error"]
-err_im = None
-first_col_axes = []
+I0_labels = {1e5: "1e5", 1e3: "1e3", 1e2: "1e2"}
+I0_titles  = {1e5: r"High dose — $I_0=10^5$",
+              1e3: r"Medium dose — $I_0=10^3$",
+              1e2: r"Low dose — $I_0=10^2$"}
 
-for ri, n_angles in enumerate(n_angles_list):
-    fbp = recon_results[I0_show][n_angles]["fbp"]
-    gd  = recon_results[I0_show][n_angles]["gd"]
-    fbp_m = recon_results[I0_show][n_angles]["fbp_m"]
-    gd_m  = recon_results[I0_show][n_angles]["gd_m"]
-    panels = [
-        (masked(fbp),                 gray_cm, img_vmin, img_vmax),
-        (masked(np.abs(phantom-fbp)), err_cm,  0,        err_vmax),
-        (masked(gd),                  gray_cm, img_vmin, img_vmax),
-        (masked(np.abs(phantom-gd)),  err_cm,  0,        err_vmax),
-    ]
-    for ci, (img, cmap, vmin, vmax) in enumerate(panels):
-        ax = fig.add_subplot(gs[ri, ci])
-        ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none")
-        ax.set_xticks([]); ax.set_yticks([])
-        ax.set_facecolor("white")
-        for sp in ax.spines.values(): sp.set_visible(False)
-        if ri == 0:
-            ax.set_title(col_titles[ci], fontsize=10, fontweight="semibold")
-        # annotate PSNR on reconstruction panels
-        if ci == 0:
-            ax.text(0.98, 0.02, f"PSNR {fbp_m['PSNR']:.1f} dB",
-                    transform=ax.transAxes, ha="right", va="bottom",
-                    fontsize=7.5, color="white",
-                    bbox=dict(facecolor="black", alpha=0.45, pad=1.5, linewidth=0))
-            first_col_axes.append(ax)
-        if ci == 2:
-            ax.text(0.98, 0.02, f"PSNR {gd_m['PSNR']:.1f} dB",
-                    transform=ax.transAxes, ha="right", va="bottom",
-                    fontsize=7.5, color="white",
-                    bbox=dict(facecolor="black", alpha=0.45, pad=1.5, linewidth=0))
-        if ci in (1, 3):
-            err_im = ax.images[-1]
+for I0_show in I0_list:
+    all_errs = [np.abs(phantom - recon_results[I0_show][n][k])
+                for n in n_angles_list for k in ("fbp", "gd")]
+    err_vmax = float(np.percentile(
+        np.concatenate([v[mask].ravel() for v in all_errs]), 99.5))
 
-# Row labels
-for ax0, n in zip(first_col_axes, n_angles_list):
-    ax0.text(-0.22, 0.5, f"{n} views",
-             transform=ax0.transAxes,
-             ha="right", va="center", fontsize=10, fontweight="semibold")
+    fig = plt.figure(figsize=(12, 8), constrained_layout=True)
+    gs  = gridspec.GridSpec(3, 5, figure=fig, width_ratios=[1,1,1,1,0.05])
+    col_titles = ["FBP", "FBP error", "GD", "GD error"]
+    err_im = None
+    first_col_axes = []
 
-cax = fig.add_subplot(gs[:, 4])
-fig.colorbar(err_im, cax=cax, extend="max").set_label("Absolute error", fontsize=9)
-fig.suptitle(
-    f"Low-dose reconstructions — $I_0$={I0_show:.0e}, Gaussian+Poisson noise ($\\sigma$=0.05)",
-    fontsize=11, fontweight="semibold")
-fig.savefig(f"{SAVE_DIR}/recon_I0_1e2.png", dpi=200, bbox_inches="tight")
-plt.close(fig)
-print(f"  Saved {SAVE_DIR}/recon_I0_1e2.png")
+    for ri, n_angles in enumerate(n_angles_list):
+        fbp   = recon_results[I0_show][n_angles]["fbp"]
+        gd    = recon_results[I0_show][n_angles]["gd"]
+        fbp_m = recon_results[I0_show][n_angles]["fbp_m"]
+        gd_m  = recon_results[I0_show][n_angles]["gd_m"]
+        panels = [
+            (masked(fbp),                 gray_cm, img_vmin, img_vmax),
+            (masked(np.abs(phantom-fbp)), err_cm,  0,        err_vmax),
+            (masked(gd),                  gray_cm, img_vmin, img_vmax),
+            (masked(np.abs(phantom-gd)),  err_cm,  0,        err_vmax),
+        ]
+        for ci, (img, cmap, vmin, vmax) in enumerate(panels):
+            ax = fig.add_subplot(gs[ri, ci])
+            ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none")
+            ax.set_xticks([]); ax.set_yticks([])
+            ax.set_facecolor("white")
+            for sp in ax.spines.values(): sp.set_visible(False)
+            if ri == 0:
+                ax.set_title(col_titles[ci], fontsize=10, fontweight="semibold")
+            if ci == 0:
+                ax.text(0.98, 0.02, f"PSNR {fbp_m['PSNR']:.1f} dB",
+                        transform=ax.transAxes, ha="right", va="bottom",
+                        fontsize=7.5, color="white",
+                        bbox=dict(facecolor="black", alpha=0.45, pad=1.5, linewidth=0))
+                first_col_axes.append(ax)
+            if ci == 2:
+                ax.text(0.98, 0.02, f"PSNR {gd_m['PSNR']:.1f} dB",
+                        transform=ax.transAxes, ha="right", va="bottom",
+                        fontsize=7.5, color="white",
+                        bbox=dict(facecolor="black", alpha=0.45, pad=1.5, linewidth=0))
+            if ci in (1, 3):
+                err_im = ax.images[-1]
+
+    for ax0, n in zip(first_col_axes, n_angles_list):
+        ax0.text(-0.22, 0.5, f"{n} views",
+                 transform=ax0.transAxes,
+                 ha="right", va="center", fontsize=10, fontweight="semibold")
+
+    cax = fig.add_subplot(gs[:, 4])
+    fig.colorbar(err_im, cax=cax, extend="max").set_label("Absolute error", fontsize=9)
+    fig.suptitle(
+        f"{I0_titles[I0_show]}, Gaussian+Poisson noise ($\\sigma$=0.05)",
+        fontsize=11, fontweight="semibold")
+    fname = f"{SAVE_DIR}/recon_I0_{I0_labels[I0_show]}.png"
+    fig.savefig(fname, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Saved {fname}")
 
 # ── FIGURE 2: PSNR heatmap — all 9 conditions, FBP and GD side by side ────
 print("Saving Figure 2: PSNR/SSIM heatmap...")
@@ -228,5 +247,53 @@ fig.suptitle("PSNR and SSIM across all 9 dose/view conditions",
 fig.savefig(f"{SAVE_DIR}/metrics_heatmap.png", dpi=200, bbox_inches="tight")
 plt.close(fig)
 print(f"  Saved {SAVE_DIR}/metrics_heatmap.png")
+
+# ── FIGURE 3: GD convergence curves — all 9 conditions ────────────────────
+print("Saving Figure 3: GD convergence curves...")
+
+# Re-run GD with convergence logging (same RNG seed → same noisy sinograms)
+rng_conv = np.random.default_rng(42)
+conv_results = {}
+for I0 in I0_list:
+    conv_results[I0] = {}
+    for n_angles in n_angles_list:
+        theta = np.linspace(0.0, 180.0, n_angles, endpoint=False)
+        sino_clean = radon(phantom, theta=theta, circle=True)
+        sino_noisy = simulate_noisy_sinogram(sino_clean, I0=I0, sigma=sigma, rng=rng_conv)
+        _, rel_res = reconstruct_gd(sino_noisy, theta, phantom.shape[0],
+                                    log_convergence=True)
+        # image MSE from the stored reconstruction
+        gd_img = recon_results[I0][n_angles]["gd"]
+        img_mse_series = None  # not tracked here; omit from plot
+        conv_results[I0][n_angles] = {"rel_res": rel_res}
+
+ordered_I0     = sorted(I0_list, reverse=True)
+ordered_angles = sorted(n_angles_list, reverse=True)
+
+fig, axes = plt.subplots(len(ordered_I0), len(ordered_angles),
+                         figsize=(15, 10), sharex=True)
+iters = np.arange(1, 201)
+
+for i, I0 in enumerate(ordered_I0):
+    for j, n_angles in enumerate(ordered_angles):
+        ax = axes[i, j]
+        rel_res = conv_results[I0][n_angles]["rel_res"]
+        ax.semilogy(iters, rel_res, color="tab:blue", linewidth=1.8,
+                    label="Rel. residual")
+        ax.set_title(f"$I_0$={I0:.0e}, {n_angles} views", fontsize=9)
+        ax.set_xlabel("Iteration", fontsize=8)
+        if j == 0:
+            ax.set_ylabel("Relative residual", fontsize=8)
+        ax.grid(True, which="both", alpha=0.3)
+        ax.tick_params(labelsize=7)
+
+fig.suptitle(
+    r"GD convergence — relative residual $\|Ax^k{-}b\|_2/\|b\|_2$"
+    + f"\n(200 iterations, $\\gamma=0.001$, Gaussian+Poisson noise, $\\sigma=0.05$)",
+    fontsize=11, fontweight="semibold")
+plt.tight_layout(rect=(0, 0, 1, 0.94))
+fig.savefig(f"{SAVE_DIR}/gd_convergence.png", dpi=200, bbox_inches="tight")
+plt.close(fig)
+print(f"  Saved {SAVE_DIR}/gd_convergence.png")
 
 print("\nDone.")
