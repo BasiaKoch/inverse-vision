@@ -26,7 +26,6 @@
 
 % ═══════════════════════════════════════════════════════════════════════════
 
-% ═══════════════════════════════════════════════════════════════════════════
 \section*{Exercise 1.1 --- Simulation of Dose Reduction}
 
 \subsection*{Objective and setup}
@@ -61,17 +60,31 @@ to the perturbed counts --- this ordering was specified by the course instructor
 At $\sigma{=}0.05$ the Gaussian term is negligible relative to Poisson
 fluctuations at all tested dose levels, so the dominant noise source is
 Poisson throughout.
-The nine resulting noisy sinograms are shown in Figure~\ref{fig:ex11_sino}.
+
+To first visualise the isolated effect of the detector-noise term, I also
+generated an auxiliary set of sinograms using only the Gaussian step in
+\eqref{eq:gauss}, omitting the Poisson sampling step. This diagnostic plot is
+shown in Figure~\ref{fig:ex11_sino_gauss}; it is included only for
+interpretation and is \emph{not} used in the reconstruction experiments.
+The combined Gaussian+Poisson sinograms used in the actual experiments are then
+shown in Figure~\ref{fig:ex11_sino}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{exercise_1_1/figure3a_sinograms_gaussian_only.png}
+\caption{Sinograms with \emph{Gaussian noise only} for all nine acquisition
+  conditions (rows: $I_0{=}10^5,10^3,10^2$; columns: 360, 90, 20 projection
+  angles). This figure is included only to isolate the effect of the Gaussian
+  detector-noise term before adding Poisson photon noise.}
+\label{fig:ex11_sino_gauss}
+\end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{exercise_1_1/figure3_noisy_sinograms_clean.png}
 \caption{Noisy sinograms for all nine acquisition conditions
   (rows: $I_0{=}10^5,10^3,10^2$; columns: 360, 90, 20 projection angles).
-  Decreasing $I_0$ increases pixel-level graininess within each sinogram.
-  Reducing the view count compresses the sinogram horizontally, sampling
-  fewer projection directions and reducing the information available for
-  reconstruction.}
+  Decreasing $I_0$ increases pixel-level graininess within each sinogram.}
 \label{fig:ex11_sino}
 \end{figure}
 
@@ -84,47 +97,16 @@ FBP is a non-iterative method that applies the Ram-Lak ramp filter in the
 1D Fourier domain of each projection before backprojecting, implementing
 the exact inversion formula from the Fourier Slice Theorem.
 
-\paragraph{Gradient Descent (Landweber iteration).}
+\paragraph{Gradient Descent}
 The iterative update follows:
 \[
   x^{k+1} = x^k - \gamma\,A^T\!(Ax^k - b), \qquad \gamma = 0.001,
 \]
 where $A = \mathrm{radon}(\cdot)$ and $A^T = \mathrm{iradon}(\cdot,\;
-\texttt{filter\_name=None})$ is the unfiltered backprojection (approximate
-adjoint, also called Landweber iteration or SIRT in the practical sheet).
+\texttt{filter\_name=None})$ is the unfiltered backprojection.
 Initialisation is $x^0 = \mathbf{0}$; 200 iterations are run with no
 regularisation or non-negativity projection.
 
-All metrics (MSE, PSNR, SSIM) are evaluated inside the circular
-reconstruction support only (masked evaluation).
-PSNR uses the data range of the reference within the mask.
-SSIM is computed on the full image with outside-mask pixels set to zero;
-this slightly underestimates SSIM near the boundary due to sliding-window
-effects, but is applied consistently so relative comparisons are valid.
-
-\subsection*{GD convergence}
-
-Figure~\ref{fig:ex11_convergence} shows the GD convergence curves for all
-nine conditions: relative projection residual $\|Ax^k - b\|_2 / \|b\|_2$
-and masked image-domain MSE, both on a log scale.
-The projection residual decreases monotonically for all conditions.
-The image-domain MSE, however, plateaus and in low-dose cases begins to
-rise --- \emph{semi-convergence}: once the iterate fits the noise component
-of $b$, further iterations amplify noise and image-domain error increases
-despite continued residual reduction.
-This effect is strongest at low dose and sparse view counts.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{exercise_1_1/gd_convergence.png}
-\caption{GD convergence curves (200 iterations, $\gamma{=}0.001$) for all
-  nine acquisition conditions (rows: $I_0{=}10^5,10^3,10^2$; columns: 360,
-  90, 20 views). Blue: relative projection residual $\|Ax^k{-}b\|_2/\|b\|_2$;
-  orange: masked image-domain MSE.
-  Semi-convergence is visible at low dose and sparse views, where image MSE
-  stabilises or rises while the projection residual continues to fall.}
-\label{fig:ex11_convergence}
-\end{figure}
 
 \subsection*{Results}
 
@@ -162,34 +144,21 @@ $I_0$ & Method & PSNR & SSIM & PSNR & SSIM & PSNR & SSIM\\
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{exercise_1_1/recon_I0_1e5.png}
-\caption{Reconstructions and absolute error maps at $I_0{=}10^5$ (high dose).
-  Rows: 360, 90, and 20 views.
-  Columns: FBP, FBP absolute error, GD, GD absolute error.
-  All panels share a common grayscale scale; error colour scale is per-figure.
-  PSNR annotated in each reconstruction panel.
-  GD leads even at high dose (37.1 vs 36.9~dB at 360 views); undersampling
-  artefacts increasingly dominate both methods at 20 views.}
+\caption{Reconstructions and absolute error maps at $I_0{=}10^5$ (high dose).}
 \label{fig:ex11_recon_1e5}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{exercise_1_1/recon_I0_1e3.png}
-\caption{Reconstructions and absolute error maps at $I_0{=}10^3$ (medium dose).
-  Layout as in Figure~\ref{fig:ex11_recon_1e5}.
-  Noise begins to dominate FBP; GD's iterative regularisation yields
-  consistently higher PSNR across all view counts.}
+\caption{Reconstructions and absolute error maps at $I_0{=}10^3$ (medium dose).}
 \label{fig:ex11_recon_1e3}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{exercise_1_1/recon_I0_1e2.png}
-\caption{Reconstructions and absolute error maps at $I_0{=}10^2$ (low dose).
-  Layout as in Figure~\ref{fig:ex11_recon_1e5}.
-  At this extreme dose level FBP images are dominated by noise;
-  GD produces visually cleaner images at every view count,
-  though streak artefacts persist at 20 views.}
+\caption{Reconstructions and absolute error maps at $I_0{=}10^2$ (low dose).}
 \label{fig:ex11_recon_1e2}
 \end{figure}
 
@@ -203,39 +172,27 @@ $I_0$ & Method & PSNR & SSIM & PSNR & SSIM & PSNR & SSIM\\
   360~views (37.1 vs 36.9~dB) but GD still leads.}
 \label{fig:ex11_heatmap}
 \end{figure}
-
 \subsection*{Key findings}
 \begin{itemize}\setlength\itemsep{0pt}
 
-  \item \textbf{GD outperforms FBP in all conditions.}
-        FBP reaches its best quality under ideal conditions
-        ($I_0{=}10^5$, 360 views: 36.9~dB, SSIM 0.891).
-        Its performance degrades steeply with noise and undersampling:
-        at 360 views, PSNR drops by 29.7~dB from $I_0{=}10^5$ to $I_0{=}10^2$.
-        GD degrades far more gradually (37.1$\rightarrow$17.3~dB,
-        a ${\sim}20$~dB loss over the same range).
+  \item \textbf{GD outperforms FBP across all settings.}
+        FBP performs best under ideal conditions
+        ($I_0{=}10^5$, 360 views: 36.9~dB, SSIM 0.891),
+        but degrades sharply with noise and undersampling
+        (PSNR drop of $\sim$30~dB from $I_0{=}10^5$ to $10^2$).
+        GD degrades more gradually (37.1$\rightarrow$17.3~dB),
+        indicating greater robustness.
 
-  \item \textbf{Compound degradation at low dose and sparse views.}
-        At $I_0{=}10^2$, 20 views, FBP PSNR collapses to $-5.67$~dB ---
-        well below the noise floor, indicating no recoverable signal.
-        GD maintains 15.1~dB under the same conditions, showing that
-        iterative reconstruction can partially compensate for both
-        noise and undersampling simultaneously.
+  \item \textbf{Strong compounding effect of low dose and sparse views.}
+        In the worst case ($I_0{=}10^2$, 20 views),
+        FBP collapses to $-5.67$~dB (no useful reconstruction),
+        while GD still achieves 15.1~dB, showing it can partially
+        compensate for both noise and undersampling.
 
-  \item \textbf{Semi-convergence in unregularised GD.}
-        Without regularisation, GD exhibits semi-convergence at low dose:
-        image-domain MSE plateaus or increases after roughly 100--150
-        iterations while the projection residual continues to fall
-        (Figure~\ref{fig:ex11_convergence}).
-        Adding a regularisation term (e.g.\ TV norm) would suppress this.
-
-  \item \textbf{Clinical implications.}
-        Reducing $I_0$ lowers radiation dose but increases photon noise;
-        reducing the view count shortens scan time but introduces
-        undersampling artefacts.
-        FBP requires high-dose, full-angle acquisitions for reliable images.
-        GD produces more stable reconstructions under dose-reduced protocols,
-        at the cost of higher per-reconstruction compute time.
+  \item \textbf{Practical implication.}
+        FBP requires high-dose, dense-view acquisitions for reliable quality.
+        GD remains stable under reduced dose and sparse views,
+        but at the cost of higher computational effort.
 
 \end{itemize}
 
@@ -244,16 +201,20 @@ $I_0$ & Method & PSNR & SSIM & PSNR & SSIM & PSNR & SSIM\\
   \item \textbf{Regularised iterative reconstruction.} Minimising
         $\|Ax-b\|^2 + \lambda R(x)$ with a Total Variation penalty
         ($R=\|\nabla x\|_1$) would suppress streak artefacts, preserve
-        sharp edges, and eliminate the semi-convergence problem observed
-        in unregularised GD.
+        sharp edges, and eliminate the semi-convergence problem observed in unregularised GD. As literature mentions that in 
+        low-dose CT reconstruction regularisation is a
+        central strategy for balancing noise suppression and edge
+        preservation \cite{zhang2018regularization}.
 
   \item \textbf{Sinogram pre-filtering.} Denoising the sinogram prior to
         FBP (e.g.\ with a low-pass filter or a learned denoiser) would
         reduce noise amplification by the ramp filter, at the cost of
-        some spatial resolution.
+        some spatial resolution. Sinogram-domain preprocessing has also
+        been studied in CT as a way to improve reconstruction robustness
+        before inversion \cite{meng2010sinogram}.
 \end{enumerate}
 
-\section{Exercise 1.2, Limited-Angle Tomography}
+\section*{Exercise 1.2 - Limited-Angle Tomography}
 
 
 \subsection*{Experimental setup}
@@ -270,8 +231,9 @@ all.
 \includegraphics[width=\linewidth]{exercise_1_2/noisy_sinograms.png}
 \caption{Noisy sinograms for all 9 conditions (rows: $I_0{=}10^5,10^3,10^2$;
   columns: 180°, 120°, 40°; 360 projections in each case).
-  The horizontal axis is the projection index; reducing the angular range
-  compresses the sinogram horizontally}
+  All sinograms have the same 360-column width; the angular range covered per
+  projection index changes, so the sampled arc shrinks from 180° to 40° while
+  the column count stays fixed.}
 \label{fig:ex12_sino}
 \end{figure}
 
@@ -285,31 +247,21 @@ effect of the missing wedge at each dose level as the scan arc narrows from
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{exercise_1_2/recon_I0_1e5.png}
-\caption{Limited-angle reconstructions at $I_0{=}10^5$ (high dose).
-  Rows: 180°, 120°, 40° angular ranges (360 projections each).
-  Columns: FBP, FBP absolute error, GD, GD absolute error.
-  At high dose, missing-wedge streak artefacts are the dominant degradation;
-  GD suppresses them more effectively than FBP.}
+\caption{Limited-angle reconstructions at $I_0{=}10^5$ (high dose)}
 \label{fig:ex12_recon_1e5}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{exercise_1_2/recon_I0_1e3.png}
-\caption{Limited-angle reconstructions at $I_0{=}10^3$ (medium dose).
-  Layout as in Figure~\ref{fig:ex12_recon_1e5}.
-  Photon noise compounds the streak artefacts; GD maintains a clear advantage
-  over FBP at all angular ranges.}
+\caption{Limited-angle reconstructions at $I_0{=}10^3$ (medium dose).}
 \label{fig:ex12_recon_1e3}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{exercise_1_2/recon_I0_1e2.png}
-\caption{Limited-angle reconstructions at $I_0{=}10^2$ (low dose).
-  Layout as in Figure~\ref{fig:ex12_recon_1e5}.
-  At 40° and low dose both methods degrade severely; GD still produces
-  recognisable anatomy where FBP collapses.}
+\caption{Limited-angle reconstructions at $I_0{=}10^2$ (low dose).}
 \label{fig:ex12_recon_1e2}
 \end{figure}
 
@@ -319,9 +271,11 @@ effect of the missing wedge at each dose level as the scan arc narrows from
 
 \begin{table}[H]
 \centering
-\caption{PSNR (dB) / SSIM for limited-angle reconstructions.
-  Performance degrades strongly as the scan arc narrows;
-  low dose and limited angle interact additively.}
+\caption{PSNR (dB) / SSIM for limited-angle reconstructions (360 projections per
+  arc, Gaussian+Poisson noise).
+  At high dose the angular range strongly controls quality; at $I_0{=}10^2$ noise
+  dominates and metrics are almost flat across arc lengths.
+  The 180° row matches Exercise~1.1 at full coverage (same noise seed).}
 \label{tab:ex12}
 \small
 \begin{tabular}{llcccccc}
@@ -330,14 +284,14 @@ effect of the missing wedge at each dose level as the scan arc narrows from
 \cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
 $I_0$ & Method & PSNR & SSIM & PSNR & SSIM & PSNR & SSIM\\
 \midrule
-\multirow{2}{*}{$10^5$} & FBP & 38.81 & 0.960 & 21.47 & 0.540 & 13.77 & 0.245\\
-                        & GD  & 32.75 & 0.928 & 24.27 & 0.750 & 19.30 & 0.517\\
+\multirow{2}{*}{$10^5$} & FBP & 36.91 & 0.891 & 22.21 & 0.537 & 14.59 & 0.295\\
+                        & GD  & \textbf{37.08} & \textbf{0.954} & \textbf{25.30} & \textbf{0.710} & \textbf{20.23} & \textbf{0.565}\\
 \midrule
-\multirow{2}{*}{$10^3$} & FBP & 22.38 & 0.422 & 18.94 & 0.313 & 13.31 & 0.199\\
-                        & GD  & 30.08 & 0.777 & 23.85 & 0.659 & 19.22 & 0.475\\
+\multirow{2}{*}{$10^3$} & FBP & 17.30 & 0.264 & 16.09 & 0.237 & 13.05 & 0.201\\
+                        & GD  & \textbf{27.05} & \textbf{0.517} & \textbf{23.46} & \textbf{0.447} & \textbf{19.92} & \textbf{0.433}\\
 \midrule
-\multirow{2}{*}{$10^2$} & FBP & 12.28 & 0.210 & 11.86 & 0.197 & 10.46 & 0.168\\
-                        & GD  & 23.48 & 0.481 & 21.30 & 0.442 & 18.60 & 0.335\\
+\multirow{2}{*}{$10^2$} & FBP &  7.20 & 0.190 &  7.06 & 0.189 &  7.28 & 0.184\\
+                        & GD  & \textbf{17.33} & \textbf{0.250} & \textbf{17.19} & \textbf{0.245} & \textbf{17.78} & \textbf{0.254}\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -346,8 +300,7 @@ $I_0$ & Method & PSNR & SSIM & PSNR & SSIM & PSNR & SSIM\\
 \centering
 \includegraphics[width=\linewidth]{exercise_1_2/metrics_vs_angle.png}
 \caption{MSE (log), PSNR, and SSIM versus angular range for FBP (top row)
-  and GD (bottom row) at all three dose levels.
-  All metrics degrade monotonically as the angular range narrows.}
+  and GD (bottom row) at all three dose levels.}
 \label{fig:ex12_metrics}
 \end{figure}
 
@@ -370,11 +323,7 @@ the full angular range, leading to a missing wedge in Fourier space.
 
 \subsection*{Why limited-angle tomography fails}
 
-I think the key idea is the Fourier Slice Theorem:
-\[
-  \mathcal{F}_1\{p_\theta\}(\xi) = \mathcal{F}_2\{f\}(\xi\cos\theta,\,\xi\sin\theta)
-\]
-Each projection at angle $\theta$ samples one radial line in the 2D Fourier
+I believe the key idea is the Fourier Slice Theorem. Each projection at angle $\theta$ samples one radial line in the 2D Fourier
 domain.
 If projections are available only over a limited arc $[0^\circ,\alpha]$,
 then part of Fourier space remains unsampled, creating a \textit{missing wedge}.
@@ -383,21 +332,27 @@ I believe this is why limited-angle CT fails to reconstruct some edges well.
 Edges correspond to high-frequency components perpendicular to the edge orientation
 This likely explains the directional blur and elongation artefacts seen in
 limited-angle reconstructions, which become especially severe at very narrow
-ranges such as $40^\circ$.
+ranges such as $40^\circ$. A more formal characterization of these
+limited-angle artefacts, including which singularities remain visible and
+which are lost, is given by Frikel and Quinto \cite{frikel2013limited}.
 % ═══════════════════════════════════════════════════════════════════════════
-\section{Exercise 1.3 --- Reconstruction}
+\section*{Exercise 1.3 - Reconstruction}
 
 \subsection*{Part (a): FBP filters in the literature}
 
 Besides the standard ramp filter, common FBP filters include
 \textbf{Shepp--Logan}, \textbf{Cosine}, \textbf{Hann}, and \textbf{Hamming}.
-All are windowed versions of the ramp filter. 
+All are windowed versions of the ramp filter. Comparative studies of
+shaping filters in CT reconstruction discuss the same family of filters
+and emphasize their noise--resolution trade-off \cite{prabhu2021filters}. 
 
 \subsection*{Part (b): Two alternative FBP filters on one low-dose example}
 
-Here I reused a low dose example from Exercise~1.1 $I_0=10^2$, 360 views,
-and the same combined Gaussian + Poisson noise model. Generated a clean sinogram was first from the masked CT image using the Radon transform. The noisy sinogram
-was then reconstructed three times with FBP, changing only the filter:
+I reproduced the low-dose setting from Exercise~1.1: $I_0=10^2$, 360 views,
+combined Gaussian + Poisson noise ($\sigma=0.05$), same phantom and circular
+mask. A clean sinogram was generated from the masked CT image via the Radon
+transform, corrupted with a fresh noise realisation (independent RNG seed),
+and then reconstructed three times with FBP, changing only the filter:
 \textbf{ramp}, \textbf{Shepp--Logan}, and \textbf{Hamming}.
 \paragraph{Results.}
 Table~\ref{tab:ex13b} and Figure~\ref{fig:ex13b_recon} show that filter choice
@@ -417,9 +372,9 @@ strongest smoothing.
 \toprule
 Filter & MSE & PSNR (dB) & SSIM \\
 \midrule
-Ramp (Ram-Lak) & 0.046897 & 12.32 & 0.2100 \\
-Shepp--Logan   & 0.030748 & 14.15 & 0.2312 \\
-Hamming        & 0.007976 & 20.01 & 0.3365 \\
+Ramp (Ram-Lak) & 0.191119 &  7.19 & 0.1902 \\
+Shepp--Logan   & 0.125042 &  9.03 & 0.1951 \\
+Hamming        & 0.031640 & 15.00 & 0.2291 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -433,111 +388,109 @@ Hamming        & 0.007976 & 20.01 & 0.3365 \\
 \end{figure}
 \subsection*{Part (c): Subset gradient descent vs full-batch gradient descent}
 
-In this section I compared full-batch gradient descent with a subset version using the same
-low-dose case ($I_0=10^2$, 360 views).
+\paragraph{Methods.}
+Full-batch GD uses all $N{=}360$ projections per iteration:
+\[
+  x^{k+1} = x^k - \gamma\,A^\top(Ax^k - b), \quad \gamma = 0.001.
+\]
+Subset GD splits them into $S{=}10$ interleaved subsets and applies one update per subset:
+\[
+  x^{k+1/S} = x^k - \gamma_s\, A_s^\top(A_s x^k - b_s).
+\]
+Both process all projections per epoch, but subset GD performs $S$ updates instead of one.
 
-For the full-batch baseline, I started from a zero image and ran the same
-update rule as in Exercise~1.1 for 100 epochs: forward projection, residual
-calculation, backprojection,
-gradient step with $\gamma=0.001$, and non-negativity clipping.
+\paragraph{Step sizes.}
+\begin{itemize}\setlength\itemsep{0pt}
+  \item $\gamma_s = \gamma/S$: matches total update per epoch.
+  \item $\gamma_s = \gamma$: gives an effective step $S\gamma$ ($10\times$ larger).
+\end{itemize}
 
-For the subset method, I split the 360 projections into $S=10$ interleaved
-subsets of 36 angles.
-Within each epoch, I updated the image once per subset using the same steps as
-above.
+\paragraph{Convergence comparison.}
+Figure~\ref{fig:ex13c_traj} shows the 100-epoch PSNR trajectories.
 
+\textbf{Scaled variant ($\gamma/S$).}  
+Subset GD matches full-batch GD almost exactly, with identical peak
+($\approx$26.4~dB at epoch~33--34) and final performance (22.08~dB),
+as confirmed by Tables~\ref{tab:ex13c_main} and \ref{tab:ex13c_early}.
+Under this scaling, both methods are effectively equivalent.
 
-\paragraph{Main comparison.}
-With matched per-epoch step size, the two methods converge to essentially the
-same final reconstruction. Table~\ref{tab:ex13c_main},
-Figure~\ref{fig:ex13c_recon}, and Figure~\ref{fig:ex13c_conv} show almost
-identical final images, error maps, and convergence curves.
+\textbf{Unscaled variant ($\gamma_s = \gamma$).}  
+Using the same per-step size yields an effective step $S\gamma$,
+giving much faster convergence: peak quality is reached in \textbf{3 epochs}
+vs \textbf{33 epochs} for full-batch (Table~\ref{tab:ex13c_early}).
+This acceleration comes at the cost of \emph{instability}, with PSNR
+dropping to 7.91~dB by epoch~100.
+
+Overall, subset GD does not improve the final solution, but shifts the
+\emph{speed--stability trade-off}, requiring early stopping or step-size decay.
 
 \begin{table}[H]
 \centering
-\caption{Main comparison after 100 epochs on the low-dose case
-($I_0=10^2$, 360 views).}
+\caption{Final metrics after 100 epochs (scaled comparison, $\gamma/S=0.0001$).
+Both methods converge to the same noise-limited solution.}
 \label{tab:ex13c_main}
 \small
 \begin{tabular}{lccc}
 \toprule
 Method & MSE & PSNR (dB) & SSIM \\
 \midrule
-Full-batch GD, $\gamma=0.001$ & 0.002063 & 25.88 & 0.5643 \\
-Subset GD, $\gamma/S=0.0001$, $S=10$ & 0.002067 & 25.87 & 0.5639 \\
+Full-batch GD, $\gamma=0.001$ & 0.006193 & 22.08 & 0.3299 \\
+Subset GD, $\gamma/S=0.0001$, $S=10$ & 0.006190 & 22.08 & 0.3300 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{table}[H]
+\centering
+\caption{Convergence summary over 100 epochs.
+``Epoch to peak'' is when PSNR is first maximised;
+``Final'' is PSNR at epoch~100.}
+\label{tab:ex13c_early}
+\small
+\begin{tabular}{lccc}
+\toprule
+Method & Epoch to peak & Peak PSNR (dB) & Final PSNR (dB) \\
+\midrule
+Full-batch GD, $\gamma=0.001$                  & 33 & 26.38 & 22.08 \\
+Subset GD, $\gamma/S=0.0001$, $S=10$           & 34 & 26.35 & 22.08 \\
+Subset GD, $\gamma=0.001$ per step, $S=10$     & \textbf{3}  & \textbf{26.34} & 7.91 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{exercise_1_3/exercise_1_3c_psnr_trajectory.png}
+\caption{Per-epoch PSNR over 100 epochs for three configurations.}
+\label{fig:ex13c_traj}
+\end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{exercise_1_3/exercise_1_3c_main_reconstructions.png}
-\caption{Main iterative comparison on the low-dose case. Top row: reference,
-full-batch GD, and subset GD reconstructions. Bottom row: absolute error maps.}
+\caption{Reconstructions after 100 epochs (scaled comparison, $\gamma/S=0.0001$).
+Top: reference, full-batch GD, subset GD. Bottom: absolute error maps.
+Results are visually identical, consistent with Table~\ref{tab:ex13c_main}.}
 \label{fig:ex13c_recon}
 \end{figure}
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{exercise_1_3/exercise_1_3c_convergence.png}
-\caption{Projection-domain and image-domain convergence for full-batch GD and
-subset GD in the main comparison.}
-\label{fig:ex13c_conv}
-\end{figure}
-To test whether subset updates accelerate convergence, I run a second experiment using the same per-sub-step step size
-$\gamma=0.001$ for both methods and stopping after 10 epochs.  Table~\ref{tab:ex13c_early}
-shows that, under this setting, subset GD reaches essentially the same quality
-as the 100-epoch full-batch reference, while full-batch GD after 10 epochs
-remains clearly worse. This demonstrates the expected ordered-subsets style
-early-convergence advantage.
 
-\begin{table}[H]
-\centering
-\caption{Early-convergence comparison on the low-dose case
-($I_0=10^2$, 360 views), using the same per-sub-step step size $\gamma=0.001$
-for both methods and stopping after 10 epochs.}
-\label{tab:ex13c_early}
-\small
-\begin{tabular}{lcc}
-\toprule
-Method & PSNR (dB) & SSIM \\
-\midrule
-Full-batch GD, 10 epochs (10 steps)      & 20.67 & 0.4925 \\
-Subset GD, 10 epochs (100 sub-steps)     & \textbf{25.88} & \textbf{0.5646} \\
-Full-batch GD, 100 epochs (reference)    & 25.88 & 0.5643 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-To test whether the subset structure itself improved performance, I run a sensitivity
-study with larger subset step sizes while keeping all other settings
-fixed. Figure~\ref{fig:ex13c_gamma} shows that the subset method is much more
-step-size-sensitive than the full-batch baseline: increasing the per-subset
-step above $\gamma/S$ causes clear degradation in both PSNR and SSIM.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{exercise_1_3/exercise_1_3c_gamma_sensitivity.png}
-\caption{Subset-GD sensitivity to step size ($S=10$, 100 epochs)}
-\label{fig:ex13c_gamma}
-\end{figure}
-
-
-\subsection*{Part (d): Why PET often uses MLEM/OSEM, while CT may use SIRT-like methods}
+\subsection*{Part (d): Why PET often uses MLEM, while CT may use SIRT-like methods}
 
 The preferred reconstruction method depends on the data model.
 In PET, the measurements are photon counts and are naturally described by a
 Poisson model, so methods such as \textbf{MLEM} and \textbf{OSEM} are often a
-good fit.
+good fit; the classical maximum-likelihood formulation for emission
+tomography is due to Shepp and Vardi \cite{shepp1982mlem}.
 
 In CT, the measurements are transmission data that are usually log-transformed
 into attenuation values.
 After this, the problem is often treated with Gaussian or least-squares
 approximations, so iterative methods such as \textbf{SIRT}-like updates can be
 more natural than a Poisson-likelihood method applied directly to the
-transformed data.
-% ═══════════════════════════════════════════════════════════════════════════
-\FloatBarrier
+transformed data. A classic algebraic example is the SART method of Andersen
+and Kak \cite{andersen1984sart}.
+
 \section{Exercise 2.1, Visualisation and Identifying Noise}
 
 \subsection*{Data loading}
@@ -844,23 +797,24 @@ could better preserve edges. Improvements may also come from more advanced
 coil combination (e.g.\ sensitivity-weighted methods) or integrating
 denoising directly into the reconstruction process.
 % ═══════════════════════════════════════════════════════════════════════════
-
 \section{Exercise 3}
+
 \subsection*{Part (a): Selected publications}
 
 \begin{itemize}
-  \item \textbf{Data-driven (ML/DL):}
-        Alom~M.Z., Yakopcic~C., Hasan~M., Taha~T.M., and Asari~V.K.,
-        \textit{Recurrent residual U-Net for medical image segmentation},
-        \textit{Journal of Medical Imaging}, 6(1):014006 (2019).
-        DOI:~10.1117/1.JMI.6.1.014006.
+  \item \textbf{Data-driven (ML/DL):} \\
+  Alom, M.Z., Yakopcic, C., Hasan, M., Taha, T.M., and Asari, V.K. (2019). \\
+  \textit{Recurrent residual U-Net for medical image segmentation}. \\
+  \textit{Journal of Medical Imaging}, 6(1), 014006. \\
+  \textit{DOI:} 10.1117/1.JMI.6.1.014006.
 
-  \item \textbf{Processing-based algorithm:}
-        Kim~S.J.W., Seo~S., Kim~H.S., Kim~D.Y., Kang~K.W., Min~J.J., and Lee~J.S.,
-        \textit{Multi-atlas cardiac PET segmentation},
-        \textit{Physica Medica}, 58:32--39 (2019).
-        DOI:~10.1016/j.ejmp.2019.01.003.
+  \item \textbf{Processing-based algorithm:} \\
+  Kim, S.J.W., Seo, S., Kim, H.S., Kim, D.Y., Kang, K.W., Min, J.J., and Lee, J.S. (2019). \\
+  \textit{Multi-atlas cardiac PET segmentation}. \\
+  \textit{Physica Medica}, 58, 32--39. \\
+  \textit{DOI:} 10.1016/j.ejmp.2019.01.003.
 \end{itemize}
+ 
 
 For the data-driven example, I selected Alom et al., which is clearly a
 deep learning segmentation paper: it proposes RU-Net and R2U-Net,
@@ -874,7 +828,7 @@ ROI transfer, without any machine learning or deep learning.
 
 \subsection*{Part (b): Paper summaries and critical comparison}
 
-\paragraph{Alom et al.\ (2019) --- Recurrent residual U-Net (R2U-Net).}
+\paragraph{Alom et al.\ (2019) -  Recurrent residual U-Net (R2U-Net).}
 Alom et al.\ propose two deep learning architectures, RU-Net and
 R2U-Net, for medical image segmentation.
 The models are evaluated on retinal blood vessel segmentation, skin
@@ -895,7 +849,7 @@ Overall, this is best viewed as a method-development paper showing
 that recurrent residual feature accumulation can improve semantic
 segmentation across several medical imaging tasks.
 
-\paragraph{Kim et al.\ (2019) --- Multi-atlas cardiac PET segmentation.}
+\paragraph{Kim et al.\ (2019) -  Multi-atlas cardiac PET segmentation.}
 Kim et al.\ propose a multi-atlas segmentation pipeline for automatic
 segmentation of the left ventricular myocardium in dynamic cardiac PET.
 The study uses PET/CT scans from twelve rats after left coronary artery
@@ -972,7 +926,7 @@ imaging settings with limited variability and a need for interpretability,
 whereas Alom et al.\ appears better suited to broader semantic
 segmentation problems, provided sufficient labelled training data are
 available.
-I believe neither of them is universally superior; the better choice depends on annotation
+I believe neither of them is universally superior; the better choice depends on segmentation problem, annotation
 availability, anatomical variability, and whether interpretability or
 predictive flexibility is the main priority.
 \subsection*{Part (c): Proposed improvement to Alom et al.\ (2019)}
@@ -1011,5 +965,47 @@ since one of the strengths claimed for R2U-Net is improved performance
 without a large increase in parameters.
 Qualitative error analysis should then be used to test whether the
 attention-gated version reduces false positives in irrelevant regions.
+
+\section*{References}
+\begin{thebibliography}{9}
+
+\bibitem{zhang2018regularization}
+H. Zhang, J. Wang, D. Zeng, X. Tao, and J. Ma,
+``Regularization strategies in statistical image reconstruction of low-dose x-ray CT: A review,''
+\emph{Medical Physics}, vol. 45, no. 10, pp. e886--e907, Oct. 2018.
+doi: 10.1002/mp.13123.
+
+\bibitem{meng2010sinogram}
+B. Meng, J. Wang, and L. Xing,
+``Sinogram preprocessing and binary reconstruction for determination of the shape and location of metal objects in computed tomography (CT),''
+\emph{Medical Physics}, vol. 37, no. 11, pp. 5867--5875, Nov. 2010.
+doi: 10.1118/1.3505294.
+
+\bibitem{frikel2013limited}
+J. Frikel and E. T. Quinto,
+``Characterization and reduction of artifacts in limited angle tomography,''
+\emph{Inverse Problems}, vol. 29, no. 12, 125007, 2013.
+doi: 10.1088/0266-5611/29/12/125007.
+
+\bibitem{prabhu2021filters}
+P. Prabhu, H. Ramaswamy, and K. Nirmala,
+``A Quantitative Study on Shaping Filters in Computed Tomography Image Reconstruction,''
+in \emph{2021 2nd Global Conference for Advancement in Technology (GCAT)},
+Bangalore, India, 2021, pp. 1--9.
+doi: 10.1109/GCAT52182.2021.9587809.
+
+\bibitem{shepp1982mlem}
+L. A. Shepp and Y. Vardi,
+``Maximum likelihood reconstruction for emission tomography,''
+\emph{IEEE Transactions on Medical Imaging}, vol. 1, no. 2, pp. 113--122, 1982.
+doi: 10.1109/TMI.1982.4307558.
+
+\bibitem{andersen1984sart}
+A. H. Andersen and A. C. Kak,
+``Simultaneous algebraic reconstruction technique (SART): a superior implementation of the ART algorithm,''
+\emph{Ultrasonic Imaging}, vol. 6, no. 1, pp. 81--94, Jan. 1984.
+doi: 10.1177/016173468400600107.
+
+\end{thebibliography}
 \end{document}
 
