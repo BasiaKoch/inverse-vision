@@ -28,6 +28,15 @@ def load_shepp_logan(size: int | None = None) -> np.ndarray:
     -------
     np.ndarray
         2D phantom image with values in [0, 1].
+
+    Examples
+    --------
+    >>> img = load_shepp_logan()
+    >>> img.shape
+    (400, 400)
+    >>> img = load_shepp_logan(size=128)
+    >>> img.shape
+    (128, 128)
     """
     phantom = shepp_logan_phantom()
     if size is not None and phantom.shape != (size, size):
@@ -51,7 +60,18 @@ def load_ct_image(path: str | Path, size: int | None = None) -> np.ndarray:
     Returns
     -------
     np.ndarray
-        2D normalised CT image.
+        2D normalised CT image with values in [0, 1] and dtype float64.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pathlib import Path
+    >>> img = load_ct_image("CT_exercise_1.png")          # doctest: +SKIP
+    >>> img.min() >= 0.0 and img.max() <= 1.0
+    True
+    >>> img = load_ct_image("CT_exercise_1.png", size=64) # doctest: +SKIP
+    >>> img.shape
+    (64, 64)
     """
     image = imread(str(path))
     if image.ndim == 3:

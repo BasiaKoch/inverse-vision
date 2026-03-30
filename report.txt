@@ -1024,17 +1024,20 @@ doi: 10.1177/016173468400600107.
 O. Oktay et al.,
 ``Attention U-Net: Learning Where to Look for the Pancreas,''
 \emph{arXiv:1804.03999}, 2018.
+doi: 10.48550/arXiv.1804.03999.
 
 \bibitem{karimi2020hausdorff}
 D. Karimi and S. E. Salcudean,
 ``Reducing the Hausdorff Distance in Medical Image Segmentation with Convolutional Neural Networks,''
 \emph{IEEE Transactions on Medical Imaging}, vol. 39, no. 2, pp. 499--513, 2020.
+doi: 10.1109/TMI.2019.2930068.
 
 \bibitem{shin2018synthesis}
 H.-C. Shin et al.,
 ``Medical Image Synthesis for Data Augmentation and Anonymization Using Generative Adversarial Networks,''
 in \emph{Simulation and Synthesis in Medical Imaging (SASHIMI 2018)},
 Lecture Notes in Computer Science, vol. 11037, pp. 1--11, Springer, 2018.
+doi: 10.1007/978-3-030-00536-8\_1.
 
 \end{thebibliography}
 \end{document}
