@@ -16,8 +16,8 @@
 % Ex 1.3 figures are already saved there by the notebook.
 \graphicspath{{notebooks/report_figures/}}
 
-\title{\textbf{CT Reconstruction: Dose, Limited Angle, and Iterative Methods}\\
-       \large Medical Imaging Coursework }
+\title{\textbf{Medical Imaging Coursework - Lent 2026}\\
+       \large Barbara Koch}
 \author{}
 \date{}
 
@@ -26,7 +26,7 @@
 
 % ═══════════════════════════════════════════════════════════════════════════
 
-\section*{Exercise 1.1 --- Simulation of Dose Reduction}
+\section*{Exercise 1.1 - Simulation of Dose Reduction}
 
 \subsection*{Objective and setup}
 
@@ -931,40 +931,54 @@ availability, anatomical variability, and whether interpretability or
 predictive flexibility is the main priority.
 \subsection*{Part (c): Proposed improvement to Alom et al.\ (2019)}
 
-One plausible improvement to R2U-Net would be to replace plain
-skip-connection concatenation with attention-gated skip connections.
-In Alom et al., encoder features are passed to the decoder through
-direct concatenation, which preserves spatial detail but also forwards
-all encoder activations equally.
-This may be suboptimal in tasks with strong foreground--background
-imbalance or small target structures, such as retinal vessels, where
-unfiltered skip features could contribute to false positives in the
+A few limitations in Alom et al.\ seem worth addressing, and a
+combined approach might resolve several of them at once.
+Perhaps the most straightforward improvement would be to replace the
+plain skip-connection concatenation with attention-gated skip
+connections \cite{oktay2018attention}.
+As the paper notes, R2U-Net struggles to cleanly separate foreground
+from background in tasks like retinal vessel segmentation, where
+the target structures are thin and highly imbalanced against the
 background.
-The reported results suggest that R2U-Net performs very well overall,
-but that there may still be room to improve sensitivity to fine target
-structures rather than only overall accuracy.
+Since all encoder activations are forwarded equally, irrelevant
+background features are likely being propagated into the decoder
+alongside the useful ones.
+Attention gates could help here by learning soft weights over the
+encoder feature maps, guided by the decoder context, so that
+spatially irrelevant activations are suppressed before concatenation.
+This kind of modification would also keep the recurrent residual
+structure intact and should not substantially increase the parameter
+count --- which seems important given the paper's emphasis on
+parameter efficiency.
 
-A reasonable extension would therefore be to add attention gates to the
-skip connections while keeping the recurrent residual convolutional
-blocks unchanged.
-This would allow the decoder to receive encoder features in a more
-selective way, ideally suppressing irrelevant background responses and
-emphasising spatially relevant structures.
-Such a modification might be especially helpful for thin vessels or
-low-contrast lesion boundaries, where irrelevant activations can make
-accurate delineation more difficult.
+A second issue that seems addressable is the blurred segmentation
+boundaries visible in the qualitative results (Fig.~12 of the paper),
+where model outputs consistently appear less sharp than the ground
+truth.
+This might be partly a loss function problem: Dice and cross-entropy
+optimise for region overlap and do not directly penalise boundary
+displacement.
+Adding a Hausdorff-distance-based loss component \cite{karimi2020hausdorff}
+alongside the existing Dice loss could encourage the network to reduce
+large localised errors near object boundaries, potentially sharpening
+predicted contours without sacrificing overall segmentation accuracy.
 
-To evaluate this improvement, three models could be compared on the
-same datasets and train/test splits used in the original paper:
-baseline U-Net, baseline R2U-Net, and attention-gated R2U-Net.
-Performance should be assessed using Dice, Jaccard, sensitivity,
-specificity, and AUC, with particular attention to fine or low-contrast
-structures.
-An ablation study at matched parameter budgets would also be important,
-since one of the strengths claimed for R2U-Net is improved performance
-without a large increase in parameters.
-Qualitative error analysis should then be used to test whether the
-attention-gated version reduces false positives in irrelevant regions.
+Finally, the authors themselves mention data scarcity as a challenge,
+noting that expert annotation is expensive and that datasets like
+DRIVE contain only 20 training images.
+GAN-based synthetic augmentation \cite{shin2018synthesis} might be
+useful here to complement the existing patch-based augmentation: a
+conditional GAN could generate plausible retinal or lesion images with
+paired segmentation masks, introducing more anatomical variety than
+geometric transforms alone can provide.
+
+To test whether these changes actually help, it would make sense to
+run ablation experiments on the same datasets and splits as the
+original paper, adding each component incrementally and measuring
+Dice, sensitivity, and AUC, along with Hausdorff distance as an
+additional boundary metric.
+Qualitative comparison of predicted boundaries against ground truth
+would also help assess whether sharpness visibly improves.
 
 \section*{References}
 \begin{thebibliography}{9}
@@ -1005,6 +1019,22 @@ A. H. Andersen and A. C. Kak,
 ``Simultaneous algebraic reconstruction technique (SART): a superior implementation of the ART algorithm,''
 \emph{Ultrasonic Imaging}, vol. 6, no. 1, pp. 81--94, Jan. 1984.
 doi: 10.1177/016173468400600107.
+
+\bibitem{oktay2018attention}
+O. Oktay et al.,
+``Attention U-Net: Learning Where to Look for the Pancreas,''
+\emph{arXiv:1804.03999}, 2018.
+
+\bibitem{karimi2020hausdorff}
+D. Karimi and S. E. Salcudean,
+``Reducing the Hausdorff Distance in Medical Image Segmentation with Convolutional Neural Networks,''
+\emph{IEEE Transactions on Medical Imaging}, vol. 39, no. 2, pp. 499--513, 2020.
+
+\bibitem{shin2018synthesis}
+H.-C. Shin et al.,
+``Medical Image Synthesis for Data Augmentation and Anonymization Using Generative Adversarial Networks,''
+in \emph{Simulation and Synthesis in Medical Imaging (SASHIMI 2018)},
+Lecture Notes in Computer Science, vol. 11037, pp. 1--11, Springer, 2018.
 
 \end{thebibliography}
 \end{document}
