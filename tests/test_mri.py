@@ -5,8 +5,13 @@ Run with:
     pytest tests/test_mri.py -v
 """
 
+import matplotlib
 import numpy as np
 import pytest
+
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt
 
 from mri_denoising.butterworth_filter import (
     apply_butterworth_filter,
@@ -15,6 +20,7 @@ from mri_denoising.butterworth_filter import (
 from mri_denoising.coil_combination import (
     combine_coils_rss,
     combine_coils_rss_snr,
+    estimate_noise_stds,
     normalise_coil_by_noise,
 )
 from mri_denoising.denoising_filters import (
@@ -23,8 +29,18 @@ from mri_denoising.denoising_filters import (
     apply_mean_filter,
     apply_median_filter,
 )
-from mri_denoising.load_kspace import identify_coil_dimension
-from mri_denoising.reconstruction_fft import get_magnitude, get_phase, kspace_to_image
+from mri_denoising.kspace_visualization import (
+    plot_kspace_magnitude,
+    plot_magnitude_and_phase,
+    plot_magnitude_images,
+)
+from mri_denoising.load_kspace import identify_coil_dimension, load_kspace
+from mri_denoising.reconstruction_fft import (
+    get_magnitude,
+    get_phase,
+    kspace_to_image,
+    kspace_to_image_centred,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -86,6 +102,11 @@ class TestFFTReconstruction:
         recovered = np.fft.fft2(image)
         np.testing.assert_allclose(np.abs(recovered), np.abs(synthetic_kspace), atol=1e-8)
 
+    def test_centred_reconstruction_matches_manual_ifftshift(self, synthetic_kspace):
+        image = kspace_to_image_centred(synthetic_kspace)
+        manual = np.fft.ifft2(np.fft.ifftshift(synthetic_kspace))
+        np.testing.assert_allclose(image, manual)
+
 
 # ---------------------------------------------------------------------------
 # Coil combination
@@ -132,6 +153,43 @@ class TestCoilCombination:
         mags = np.abs(synthetic_multi_coil)
         combined = combine_coils_rss_snr(mags, coil_axis=0)
         assert np.all(combined >= 0)
+
+    def test_normalise_zero_noise_returns_copy(self):
+        img = np.ones((8, 8), dtype=np.float64)
+        normalised = normalise_coil_by_noise(img, noise_rows=3)
+        np.testing.assert_allclose(normalised, img)
+        assert normalised is not img
+
+    def test_estimate_noise_stds_returns_one_value_per_coil(self):
+        coils = np.stack(
+            [
+                np.full((4, 4), 1.0),
+                np.full((4, 4), 2.0),
+                np.array([[0.0, 1.0, 0.0, 1.0]] * 4),
+            ],
+            axis=0,
+        )
+        noise_stds = estimate_noise_stds(coils, coil_axis=0, noise_rows=2)
+        assert noise_stds.shape == (3,)
+        assert noise_stds[0] == pytest.approx(0.0)
+        assert noise_stds[1] == pytest.approx(0.0)
+        assert noise_stds[2] > 0.0
+
+    def test_rss_snr_uses_provided_noise_stds(self):
+        mags = np.stack(
+            [
+                np.full((2, 2), 2.0),
+                np.full((2, 2), 8.0),
+            ],
+            axis=0,
+        )
+        combined = combine_coils_rss_snr(mags, coil_axis=0, noise_stds=np.array([2.0, 4.0]))
+        np.testing.assert_allclose(combined, np.sqrt(5.0) * np.ones((2, 2)))
+
+    def test_rss_snr_rejects_wrong_noise_std_shape(self):
+        mags = np.ones((2, 4, 4), dtype=np.float64)
+        with pytest.raises(ValueError, match="noise_stds must have shape"):
+            combine_coils_rss_snr(mags, coil_axis=0, noise_stds=np.array([1.0, 2.0, 3.0]))
 
 
 # ---------------------------------------------------------------------------
@@ -221,6 +279,12 @@ class TestDenoisingFilters:
         assert result.min() >= test_image.min() - 1e-6
         assert result.max() <= test_image.max() + 1e-6
 
+    def test_bilateral_constant_image_returns_copy(self):
+        image = np.ones((8, 8), dtype=np.float64)
+        result = apply_bilateral_filter(image)
+        np.testing.assert_allclose(result, image)
+        assert result is not image
+
 
 # ---------------------------------------------------------------------------
 # Coil dimension identification
@@ -235,3 +299,37 @@ class TestCoilDimension:
     def test_last_axis(self):
         kspace = np.zeros((280, 280, 6), dtype=complex)
         assert identify_coil_dimension(kspace) == 2
+
+
+class TestLoadKspace:
+    def test_load_kspace_roundtrip(self, tmp_path):
+        arr = (np.arange(12).reshape(3, 2, 2) + 1j).astype(np.complex128)
+        path = tmp_path / "sample.npy"
+        np.save(path, arr)
+        loaded = load_kspace(path)
+        np.testing.assert_array_equal(loaded, arr)
+
+
+class TestVisualisationHelpers:
+    def test_plot_kspace_magnitude_returns_figure(self, synthetic_multi_coil):
+        fig = plot_kspace_magnitude(synthetic_multi_coil, coil_axis=0)
+        try:
+            assert len(fig.axes) == synthetic_multi_coil.shape[0]
+        finally:
+            plt.close(fig)
+
+    def test_plot_magnitude_images_handles_single_coil(self, synthetic_kspace):
+        fig = plot_magnitude_images(synthetic_kspace[np.newaxis, ...], coil_axis=0)
+        try:
+            assert len(fig.axes) == 1
+        finally:
+            plt.close(fig)
+
+    def test_plot_magnitude_and_phase_returns_two_axes(self, synthetic_kspace):
+        image = kspace_to_image(synthetic_kspace)
+        fig = plot_magnitude_and_phase(image, title="Example")
+        try:
+            assert len(fig.axes) == 2
+            assert fig._suptitle is not None
+        finally:
+            plt.close(fig)

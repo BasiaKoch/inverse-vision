@@ -11,7 +11,6 @@ from PIL import Image
 
 from ct_reconstruction.phantom import load_ct_image, load_shepp_logan
 
-
 # ---------------------------------------------------------------------------
 # Shepp-Logan phantom
 # ---------------------------------------------------------------------------

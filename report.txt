@@ -17,7 +17,8 @@
 \graphicspath{{notebooks/report_figures/}}
 
 \title{\textbf{Medical Imaging Coursework - Lent 2026}\\
-       \large Barbara Koch}
+       \large Barbara Koch,
+       \large Word Count: 3136}
 \author{}
 \date{}
 
@@ -28,46 +29,59 @@
 
 \section*{Exercise 1.1 - Simulation of Dose Reduction}
 
-\subsection*{Objective and setup}
+\subsection*{Procedure and experimental setup}
 
-The aim is to characterise how image quality degrades when both the photon
-dose and the number of projection angles are reduced.
-A chest CT image ($512{\times}512$) was used as the phantom, masked to its
-inscribed reconstruction circle.
-Three dose levels, $I_0 \in \{10^5, 10^3, 10^2\}$~photons, and three view
-counts, $n \in \{360, 90, 20\}$, were combined to produce nine experimental
-conditions.
-Parallel-beam geometry with angles sampled uniformly over $[0^\circ, 180^\circ)$
-was used throughout.
+I began by loading the $512 \times 512$ chest CT image and used it as the phantom for all experiments. To ensure consistency with the reconstruction geometry, I masked the image to the inscribed circular field of view, so that only the region that can be reconstructed reliably was retained.
 
-\subsection*{Noise model}
+I then defined nine acquisition settings by combining three photon-dose levels,
+\[
+I_0 \in \{10^5, 10^3, 10^2\},
+\]
+with three numbers of projection angles,
+\[
+n \in \{360, 90, 20\}.
+\]
+For each setting, I simulated a parallel-beam CT acquisition using projection angles sampled uniformly over the range $[0^\circ,180^\circ)$.
 
-Clean sinograms were generated via the Radon transform.
-Each was then corrupted in the transmission domain:
+This gave a controlled framework for studying two effects separately and jointly: the impact of lowering the dose, and the impact of reducing the angular sampling.
+
+\subsection*{Generation of noisy sinograms}
+
+For each of the nine acquisition settings, I first generated a clean sinogram by applying the Radon transform to the masked phantom. I then converted this clean projection data into a noisy transmission measurement step by step.
+
+First, I normalised the sinogram by its maximum value,
 \begin{align}
-  p_{\mathrm{norm}} &= p\,/\,p_{\max}, \label{eq:pnorm}\\
-  I &= I_0\,\exp(-p_{\mathrm{norm}}), \label{eq:beer}\\
-  I_g &= I + \mathcal{N}(0,\,\sigma^2), \quad \sigma = 0.05, \label{eq:gauss}\\
-  I_{\mathrm{noisy}} &\sim \mathrm{Poisson}\!\bigl(\max(I_g,\,\varepsilon)\bigr), \label{eq:poisson}\\
-  p_{\mathrm{noisy}} &= -\log\!\left(\tfrac{I_{\mathrm{noisy}}}{I_0}\right)\cdot p_{\max}. \label{eq:back}
+  p_{\mathrm{norm}} &= p / p_{\max},
+\end{align}
+so that the attenuation values were on a stable numerical scale before applying the Beer--Lambert law.
+
+Next, I converted the normalised projections into transmitted photon counts:
+\begin{align}
+  I &= I_0 \exp(-p_{\mathrm{norm}}).
 \end{align}
 
-Step~\eqref{eq:pnorm} normalises the sinogram before Beer-Lambert to keep
-transmission counts in a numerically stable range (as suggested in the practical).
-Step~\eqref{eq:gauss} applies Gaussian \emph{detector} noise first;
-Step~\eqref{eq:poisson} then applies Poisson \emph{photon-counting} noise
-to the perturbed counts --- this ordering was specified by the course instructor.
-At $\sigma{=}0.05$ the Gaussian term is negligible relative to Poisson
-fluctuations at all tested dose levels, so the dominant noise source is
-Poisson throughout.
 
-To first visualise the isolated effect of the detector-noise term, I also
-generated an auxiliary set of sinograms using only the Gaussian step in
-\eqref{eq:gauss}, omitting the Poisson sampling step. This diagnostic plot is
-shown in Figure~\ref{fig:ex11_sino_gauss}; it is included only for
-interpretation and is \emph{not} used in the reconstruction experiments.
-The combined Gaussian+Poisson sinograms used in the actual experiments are then
-shown in Figure~\ref{fig:ex11_sino}.
+
+
+After that, I added Gaussian detector noise to the transmission counts:
+\begin{align}
+  I_g &= I + \mathcal{N}(0,\sigma^2), \qquad \sigma = 0.05.
+\end{align}
+
+I then applied Poisson sampling to model photon-counting noise:
+\begin{align}
+  I_{\mathrm{noisy}} &\sim \mathrm{Poisson}\!\bigl(\max(I_g,\varepsilon)\bigr).
+\end{align}
+
+Finally, I converted the noisy transmission counts back into projection values:
+\begin{align}
+  p_{\mathrm{noisy}} &= -\log\!\left(\frac{I_{\mathrm{noisy}}}{I_0}\right)\cdot p_{\max}.
+\end{align}
+This produced the final noisy sinogram used for reconstruction.
+
+
+
+To make the effect of the Gaussian detector noise easier to interpret, I also generated an additional diagnostic example in which only the Gaussian-noise step was applied and the Poisson sampling step was omitted. This auxiliary result is shown in Figure~\ref{fig:ex11_sino_gauss}. The actual noisy sinograms used in the study, generated with both Gaussian and Poisson noise, are shown in Figure~\ref{fig:ex11_sino}.
 
 \begin{figure}[H]
 \centering
@@ -91,8 +105,7 @@ shown in Figure~\ref{fig:ex11_sino}.
 \subsection*{Reconstruction methods}
 
 \paragraph{FBP.}
-Ramp-filtered backprojection (\texttt{skimage.iradon},
-\texttt{filter\_name="ramp"}) was applied directly to each noisy sinogram.
+Ramp-filtered backprojection was applied directly to each noisy sinogram.
 FBP is a non-iterative method that applies the Ram-Lak ramp filter in the
 1D Fourier domain of each projection before backprojecting, implementing
 the exact inversion formula from the Fourier Slice Theorem.
@@ -104,7 +117,7 @@ The iterative update follows:
 \]
 where $A = \mathrm{radon}(\cdot)$ and $A^T = \mathrm{iradon}(\cdot,\;
 \texttt{filter\_name=None})$ is the unfiltered backprojection.
-Initialisation is $x^0 = \mathbf{0}$; 200 iterations are run with no
+Initialisation is $x^0 = 0$; 200 iterations are run with no
 regularisation or non-negativity projection.
 
 
@@ -185,7 +198,7 @@ $I_0$ & Method & PSNR & SSIM & PSNR & SSIM & PSNR & SSIM\\
 
   \item \textbf{Strong compounding effect of low dose and sparse views.}
         In the worst case ($I_0{=}10^2$, 20 views),
-        FBP collapses to $-5.67$~dB (no useful reconstruction),
+        FBP collapses to $-5.67$~dB suggesting no useful reconstruction,
         while GD still achieves 15.1~dB, showing it can partially
         compensate for both noise and undersampling.
 
@@ -200,14 +213,14 @@ $I_0$ & Method & PSNR & SSIM & PSNR & SSIM & PSNR & SSIM\\
 \begin{enumerate}\setlength\itemsep{0pt}
   \item \textbf{Regularised iterative reconstruction.} Minimising
         $\|Ax-b\|^2 + \lambda R(x)$ with a Total Variation penalty
-        ($R=\|\nabla x\|_1$) would suppress streak artefacts, preserve
+        ($R=\|\nabla x\|_1$) could suppress streak artefacts, preserve
         sharp edges, and eliminate the semi-convergence problem observed in unregularised GD. As literature mentions that in 
         low-dose CT reconstruction regularisation is a
         central strategy for balancing noise suppression and edge
         preservation \cite{zhang2018regularization}.
 
   \item \textbf{Sinogram pre-filtering.} Denoising the sinogram prior to
-        FBP (e.g.\ with a low-pass filter or a learned denoiser) would
+        FBP (e.g.\ with a low-pass filter or a learned denoiser) could
         reduce noise amplification by the ramp filter, at the cost of
         some spatial resolution. Sinogram-domain preprocessing has also
         been studied in CT as a way to improve reconstruction robustness
@@ -326,15 +339,10 @@ the full angular range, leading to a missing wedge in Fourier space.
 I believe the key idea is the Fourier Slice Theorem. Each projection at angle $\theta$ samples one radial line in the 2D Fourier
 domain.
 If projections are available only over a limited arc $[0^\circ,\alpha]$,
-then part of Fourier space remains unsampled, creating a \textit{missing wedge}.
-
-I believe this is why limited-angle CT fails to reconstruct some edges well.
-Edges correspond to high-frequency components perpendicular to the edge orientation
+then part of Fourier space remains unsampled, creating a missing wedge. As edges correspond to high-frequency components perpendicular to the edge orientation \cite{frikel2013limited}.
 This likely explains the directional blur and elongation artefacts seen in
 limited-angle reconstructions, which become especially severe at very narrow
-ranges such as $40^\circ$. A more formal characterization of these
-limited-angle artefacts, including which singularities remain visible and
-which are lost, is given by Frikel and Quinto \cite{frikel2013limited}.
+ranges such as $40^\circ$.
 % ═══════════════════════════════════════════════════════════════════════════
 \section*{Exercise 1.3 - Reconstruction}
 
@@ -351,7 +359,7 @@ and emphasize their noise--resolution trade-off \cite{prabhu2021filters}.
 I reproduced the low-dose setting from Exercise~1.1: $I_0=10^2$, 360 views,
 combined Gaussian + Poisson noise ($\sigma=0.05$), same phantom and circular
 mask. A clean sinogram was generated from the masked CT image via the Radon
-transform, corrupted with a fresh noise realisation (independent RNG seed),
+transform, corrupted with a fresh noise realisation,
 and then reconstructed three times with FBP, changing only the filter:
 \textbf{ramp}, \textbf{Shepp--Logan}, and \textbf{Hamming}.
 \paragraph{Results.}
@@ -389,20 +397,20 @@ Hamming        & 0.031640 & 15.00 & 0.2291 \\
 \subsection*{Part (c): Subset gradient descent vs full-batch gradient descent}
 
 \paragraph{Methods.}
-Full-batch GD uses all $N{=}360$ projections per iteration:
-\[
-  x^{k+1} = x^k - \gamma\,A^\top(Ax^k - b), \quad \gamma = 0.001.
-\]
-Subset GD splits them into $S{=}10$ interleaved subsets and applies one update per subset:
-\[
-  x^{k+1/S} = x^k - \gamma_s\, A_s^\top(A_s x^k - b_s).
-\]
-Both process all projections per epoch, but subset GD performs $S$ updates instead of one.
+Full-batch GD uses all $N{=}360$ projections in each iteration, with
+step size $\gamma = 0.001$.
+Subset GD splits the same projections into $S{=}10$ interleaved subsets.
+Within each epoch, the image is updated \emph{sequentially}: one gradient step
+is taken using the first subset, then the updated image is used for the second
+subset, and so on until all 10 subsets have been visited.
+Both methods therefore process the full dataset once per epoch, but subset GD
+performs $S$ smaller updates instead of one full-batch update.
 
 \paragraph{Step sizes.}
 \begin{itemize}\setlength\itemsep{0pt}
   \item $\gamma_s = \gamma/S$: matches total update per epoch.
-  \item $\gamma_s = \gamma$: gives an effective step $S\gamma$ ($10\times$ larger).
+  \item $\gamma_s = \gamma$: gives a much larger overall update scale per epoch
+        (roughly $S\gamma$, i.e.\ about $10\times$ larger here).
 \end{itemize}
 
 \paragraph{Convergence comparison.}
@@ -416,13 +424,13 @@ Under this scaling, both methods are effectively equivalent.
 
 \textbf{Unscaled variant ($\gamma_s = \gamma$).}  
 Using the same per-step size yields an effective step $S\gamma$,
-giving much faster convergence: peak quality is reached in \textbf{3 epochs}
-vs \textbf{33 epochs} for full-batch (Table~\ref{tab:ex13c_early}).
+giving much faster convergence: peak quality is reached in 3 epochs
+vs 33 epochs for full-batch (Table~\ref{tab:ex13c_early}).
 This acceleration comes at the cost of \emph{instability}, with PSNR
 dropping to 7.91~dB by epoch~100.
 
 Overall, subset GD does not improve the final solution, but shifts the
-\emph{speed--stability trade-off}, requiring early stopping or step-size decay.
+speed--stability trade-off, requiring early stopping or step-size decay.
 
 \begin{table}[H]
 \centering
@@ -479,14 +487,14 @@ Results are visually identical, consistent with Table~\ref{tab:ex13c_main}.}
 
 The preferred reconstruction method depends on the data model.
 In PET, the measurements are photon counts and are naturally described by a
-Poisson model, so methods such as \textbf{MLEM} and \textbf{OSEM} are often a
+Poisson model, so methods such as MLEM and OSEM are often a
 good fit; the classical maximum-likelihood formulation for emission
 tomography is due to Shepp and Vardi \cite{shepp1982mlem}.
 
 In CT, the measurements are transmission data that are usually log-transformed
 into attenuation values.
 After this, the problem is often treated with Gaussian or least-squares
-approximations, so iterative methods such as \textbf{SIRT}-like updates can be
+approximations, so iterative methods such as SIRT-like updates can be
 more natural than a Poisson-likelihood method applied directly to the
 transformed data. A classic algebraic example is the SART method of Andersen
 and Kak \cite{andersen1984sart}.
@@ -495,9 +503,7 @@ and Kak \cite{andersen1984sart}.
 
 \subsection*{Data loading}
 
-The dataset \texttt{knee.npy} contains complex-valued MRI k-space measurements
-acquired from a knee with multiple receiver coils.
-I loaded array with \texttt{np.load()} inspected shape, yielding
+The dataset \texttt{knee.npy} contains complex-valued MRI k-space measurements. I loaded array with \texttt{np.load()} inspected shape, yielding
 a three-dimensional array of $(6, 280, 280)$ with dtype \texttt{complex128}.
 The three axes correspond to one coil dimension and two spatial k-space dimensions.
 
@@ -578,11 +584,6 @@ coverage benefit of multi-coil combination.}
 
 \subsection*{Observations}
 
-The log-scaled k-space plots show a brighter central region in all six coils,
-indicating that most of the signal energy lies in the low spatial frequencies.
-Towards the periphery, the magnitude drops quickly and a visible noise floor
-appears.
-
 After reconstruction, the magnitude image shows the knee anatomy,
 whereas the phase image mainly shows wrapped phase variation and is less useful
 for anatomical interpretation here.
@@ -599,18 +600,28 @@ overall representation of the dataset.
 \section{Exercise 2.2, Image-Space Denoising and k-Space Filtering}
 
 % ── Part (a) ────────────────────────────────────────────────────────────────
+
+% ── Part (a) 
 \subsection*{Part (a): Image-space denoising}
 
-I applied three image-space denoising methods to the magnitude images of all six coils: median, Gaussian, and bilateral filtering. The median filter ($3\times3$) served as a simple baseline, while Gaussian ($\sigma=1.0$ px) provided uniform smoothing and bilateral filtering ($\sigma_\text{spatial}=3.0$ px, $\sigma_\text{color}=0.05$) enabled edge-preserving denoising.
+I first reconstructed the individual coil images from the original noisy k-space
+data and took their magnitudes. I then applied three denoising methods directly
+in image space, independently to each of the six coil magnitude images, before
+any coil combination step. The three methods were a median filter
+($3\times3$ window), a Gaussian filter ($\sigma=1.0$ px), and a bilateral
+filter ($\sigma_{\text{spatial}}=3.0$ px, $\sigma_{\text{color}}=0.05$).
 
-Each method was applied independently to every coil image to allow a consistent comparison across filters and coils.
+
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{exercise_2_2/part_a_comparison_coil0.png}
-\caption{Coil~0 magnitude image before and after each denoising method. Gaussian blurs the cartilage boundaries and cortical bone margins; median
-  retains edges better but can flatten thin structures; bilateral preserves
-  the sharpest edges while still reducing background noise.}
+\caption{Coil~0 magnitude image before and after each denoising method.
+For this representative higher-SNR coil, Gaussian filtering reduces noise but
+visibly softens the cartilage boundary and cortical margins. Median filtering
+keeps edges slightly sharper, although some thin structures appear flatter.
+Bilateral filtering gives the smoothest background while retaining the main
+boundaries most clearly.}
 \label{fig:ex22_parta_coil0}
 \end{figure}
 
@@ -618,7 +629,7 @@ Each method was applied independently to every coil image to allow a consistent 
 \centering
 \includegraphics[width=\linewidth]{exercise_2_2/part_a_all_coils_median.png}
 \caption{All six coil magnitude images after median filtering
-  ($3\times3$ window).}
+($3\times3$ window).}
 \label{fig:ex22_parta_median}
 \end{figure}
 
@@ -626,7 +637,7 @@ Each method was applied independently to every coil image to allow a consistent 
 \centering
 \includegraphics[width=\linewidth]{exercise_2_2/part_a_all_coils_gaussian.png}
 \caption{All six coil magnitude images after Gaussian filtering
-  ($\sigma=1.0$\,px).}
+($\sigma=1.0$\,px).}
 \label{fig:ex22_parta_gaussian}
 \end{figure}
 
@@ -634,45 +645,41 @@ Each method was applied independently to every coil image to allow a consistent 
 \centering
 \includegraphics[width=\linewidth]{exercise_2_2/part_a_all_coils_bilateral.png}
 \caption{All six coil magnitude images after bilateral filtering
-  ($\sigma_\text{spatial}=3.0$\,px, $\sigma_\text{color}=0.05$).}
+($\sigma_{\text{spatial}}=3.0$\,px, $\sigma_{\text{color}}=0.05$).}
 \label{fig:ex22_parta_bilateral}
 \end{figure}
 
 \begin{table}[H]
 \centering
-\caption{Intensity summary for coil~0. Background standard
-deviation was measured from four $20\times20$ corner ROIs, and central mean
-from an $80\times80$ central ROI.}
+\caption{Standard deviation in a fixed $20\times20$ low-signal region of
+coil~0 (rows 250:270, cols 30:50). This is used only as a simple proxy for
+residual local fluctuations, not as a full image-quality metric.}
 \label{tab:ex22_parta_summary}
-\begin{tabular}{lcc}
+\begin{tabular}{lc}
 \hline
-\textbf{Method} & \textbf{Background std} & \textbf{Central mean} \\
+\textbf{Method} & \textbf{Local std} \\
 \hline
-Original magnitude    & 0.05240 & 0.29197 \\
-Median 3x3            & 0.03281 & 0.28876 \\
-Gaussian $\sigma=1.0$ & 0.02824 & 0.29194 \\
-Bilateral             & 0.02865 & 0.28921 \\
+Original magnitude    & 0.03822 \\
+Median 3x3            & 0.01579 \\
+Gaussian $\sigma=1.0$ & 0.01059 \\
+Bilateral             & 0.00390 \\
 \hline
 \end{tabular}
 \end{table}
+
 \subsubsection*{Results and comparison}
 
-Table~\ref{tab:ex22_parta_summary} summarises the single-coil behaviour for
-coil~0; a quantitative comparison on the RSS-combined images is given in
-Part~(c).
-
-All three filters reduce background noise relative to the original image.
-The background standard deviation decreases from 0.05240 to 0.03281
-(median), 0.02824 (Gaussian), and 0.02865 (bilateral), indicating that
-Gaussian provides the strongest smoothing, with bilateral very close.
-The central mean remains largely unchanged, suggesting minimal signal loss.
-
-The key difference is the smoothing–detail trade-off. Gaussian produces
-the smoothest result but blurs anatomical boundaries most strongly.
-Median filtering is more moderate, reducing isolated fluctuations while
-better preserving edges. Bilateral filtering achieves near-Gaussian noise
-reduction while retaining sharper boundaries.
-
+Figures~\ref{fig:ex22_parta_median}--\ref{fig:ex22_parta_bilateral} show that
+all three methods reduce visible noise in every coil, but with different
+smoothing behaviour. The Gaussian filter produces the most uniform blur across
+the image and softens anatomical boundaries the most. The median filter gives a
+milder effect: it reduces speckled fluctuations while preserving strong edges
+better than Gaussian smoothing, although it can flatten fine structures. The
+bilateral filter suppresses low-signal background fluctuations most strongly and
+generally keeps the main boundaries sharper, especially in coils with better
+signal, but in the noisiest coils it also appears more aggressive and may
+suppress weak texture. This trend is consistent with the simple quantitative summary in
+Table~\ref{tab:ex22_parta_summary}. 
 % ── Part (b) ────────────────────────────────────────────────────────────────
 \subsection*{Part (b): k-space low-pass filtering}
 
@@ -736,12 +743,16 @@ with plain RSS, giving three denoised combined images for comparison:
         \!\Bigl[f\!\left(m_c\right)(x,y)\Bigr]^2},
   \quad f \in \{\text{Gaussian},\,\text{median},\,\text{bilateral}\}.
 \]
+For the final denoised combined result, I use the bilateral filter because it
+gave the best visual balance between smoothing and edge preservation in
+Part~(a). Median and Gaussian results are retained for qualitative
+comparison.
 
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth]{exercise_2_2/part_c_combined.png}
-\caption{Original RSS image (left), median-denoised-then-combined image
+\caption{Original RSS image (left), bilateral-denoised-then-combined image
   (centre), and absolute pixel-wise difference (right).}
 \label{fig:ex22_partc}
 \end{figure}
@@ -751,53 +762,27 @@ with plain RSS, giving three denoised combined images for comparison:
 \includegraphics[width=\linewidth]{exercise_2_2/part_c_all_methods.png}
 \caption{RSS-combined image for all three denoising methods on a shared
   colour scale.
-  Left to right: original, Gaussian ($\sigma=1$), median ($3\times3$),
+  Left to right: original, median ($3\times3$), Gaussian ($\sigma=1$),
   bilateral.}
 \label{fig:ex22_partc_all}
 \end{figure}
 
-\begin{table}[H]
-\centering
-\caption{Quantitative summary for the final RSS-combined images.
-Background standard deviation was measured from the same four
-$20\times20$ corner ROIs used in Part~(a), central mean from the same
-$80\times80$ central ROI, and mean gradient magnitude is reported as a
-simple edge-preservation proxy.}
-\label{tab:ex22_partc_summary}
-\begin{tabular}{lccc}
-\hline
-\textbf{Method} & \textbf{Background std} & \textbf{Central mean} & \textbf{Mean grad} \\
-\hline
-Original RSS       & 1.09355 & 0.75814 & 0.21705 \\
-Median then RSS    & 1.07560 & 0.70098 & 0.10820 \\
-Gaussian then RSS  & 0.74242 & 0.71596 & 0.07754 \\
-Bilateral then RSS & 1.09981 & 0.71827 & 0.16334 \\
-\hline
-\end{tabular}
-\end{table}
 \subsubsection*{Results and comparison across methods}
 
-Denoising before RSS mainly reduces noise in background and homogeneous regions
-while preserving overall anatomical structure.
-Quantitatively, Gaussian achieves the strongest noise reduction, but also
-reduces gradient magnitude the most, indicating increased blurring.
-Bilateral provides a better balance, achieving comparable noise suppression
-while preserving sharper edges, whereas median gives an intermediate result.
-
-Overall, the methods reflect a trade-off between noise reduction and detail
-preservation. Applying denoising before RSS is appropriate, as filtering is
-performed prior to the nonlinear coil combination, avoiding signal-dependent
-noise effects in the combined image.
+The bilateral-denoised RSS image is smoother than the original RSS image
+while preserving the main anatomical structure. Comparing the three methods
+qualitatively, Gaussian gives the strongest overall smoothing but also the
+most blur, median gives a moderate compromise, and bilateral preserves the
+clearest edges while still reducing visible noise. On that basis, bilateral
+is the preferred final combined result here.
 
 \subsubsection*{Further improvements}
 
-More advanced methods could further improve image quality. Non-local means
-could exploit self-similarity for stronger denoising, while total variation
-could better preserve edges. Improvements may also come from more advanced
-coil combination (e.g.\ sensitivity-weighted methods) or integrating
-denoising directly into the reconstruction process.
+Possible improvements include non-local means or wavelet denoising, which
+could reduce noise while preserving more detail, and sensitivity-weighted
+coil combination instead of plain RSS.
 % ═══════════════════════════════════════════════════════════════════════════
-\section{Exercise 3}
+\section{Module 3}
 
 \subsection*{Part (a): Selected publications}
 
@@ -815,16 +800,6 @@ denoising directly into the reconstruction process.
   \textit{DOI:} 10.1016/j.ejmp.2019.01.003.
 \end{itemize}
  
-
-For the data-driven example, I selected Alom et al., which is clearly a
-deep learning segmentation paper: it proposes RU-Net and R2U-Net,
-architectures that extend U-Net with recurrent convolutional layers and
-residual connections, and learns the segmentation mapping from labelled
-image--mask pairs.
-For the processing-based example, I selected Kim et al., which is a
-classical segmentation study: it relies on atlas construction, affine and
-nonlinear spatial normalisation, similarity-based atlas selection, and
-ROI transfer, without any machine learning or deep learning.
 
 \subsection*{Part (b): Paper summaries and critical comparison}
 
@@ -845,9 +820,6 @@ Jaccard, and AUC.
 The authors report that RU-Net and especially R2U-Net generally
 outperform equivalent SegNet, U-Net, and ResU-Net baselines, often
 with the same or fewer parameters.
-Overall, this is best viewed as a method-development paper showing
-that recurrent residual feature accumulation can improve semantic
-segmentation across several medical imaging tasks.
 
 \paragraph{Kim et al.\ (2019) -  Multi-atlas cardiac PET segmentation.}
 Kim et al.\ propose a multi-atlas segmentation pipeline for automatic
@@ -869,9 +841,6 @@ The paper reports that multi-atlas segmentation agrees more closely
 with manual segmentation than the single-atlas method, achieving
 $r^2 = 0.92$ versus $r^2 = 0.88$ for perfusion estimates, while also
 reducing underestimation in high-perfusion regions.
-Methodologically, this is a classical atlas-based and registration-based
-segmentation pipeline rather than a learned predictive model.
-
 \paragraph{Comparison.}
 
 The two papers represent two distinct segmentation paradigms.
@@ -883,9 +852,7 @@ By contrast, Kim et al.\ use a \textit{processing-based atlas segmentation}
 pipeline: a new PET image is spatially normalised to several manually
 labelled atlases, the best-matching atlas is selected using similarity
 measures, and its ROIs are transferred to the source image.
-In course terms, the first is supervised feature learning, whereas the
-second is classical registration-based segmentation with explicit
-anatomical priors.
+
 
 The methods differ in both the information they use and their dependence
 on annotation.
@@ -893,16 +860,13 @@ R2U-Net learns appearance features such as edges, texture, and context
 directly from labelled data, which makes it potentially well suited to
 heterogeneous targets with complex boundaries.
 However, its performance depends on the quality and representativeness of
-the training set, and the paper does not test robustness to domain shift
-or unseen acquisition settings.
-The multi-atlas method also depends on manual annotation, but only to
+the training set. The multi-atlas method also depends on manual annotation, but only to
 construct a small atlas library rather than a large supervised training
 set.
 This is likely to be advantageous in small, specialised studies such as
 the rodent cardiac PET setting of Kim et al., where expert atlas creation
 is feasible but large labelled datasets are not.
 
-Their likely failure modes are correspondingly different.
 R2U-Net may generalise well when relevant variability is represented in
 training, and its learned features make it more flexible than template
 transfer for fine vessels or lesion boundaries.
@@ -926,9 +890,7 @@ imaging settings with limited variability and a need for interpretability,
 whereas Alom et al.\ appears better suited to broader semantic
 segmentation problems, provided sufficient labelled training data are
 available.
-I believe neither of them is universally superior; the better choice depends on segmentation problem, annotation
-availability, anatomical variability, and whether interpretability or
-predictive flexibility is the main priority.
+
 \subsection*{Part (c): Proposed improvement to Alom et al.\ (2019)}
 
 A few limitations in Alom et al.\ seem worth addressing, and a
@@ -948,7 +910,7 @@ encoder feature maps, guided by the decoder context, so that
 spatially irrelevant activations are suppressed before concatenation.
 This kind of modification would also keep the recurrent residual
 structure intact and should not substantially increase the parameter
-count --- which seems important given the paper's emphasis on
+count,  which seems important given the paper's emphasis on
 parameter efficiency.
 
 A second issue that seems addressable is the blurred segmentation
@@ -1024,21 +986,17 @@ doi: 10.1177/016173468400600107.
 O. Oktay et al.,
 ``Attention U-Net: Learning Where to Look for the Pancreas,''
 \emph{arXiv:1804.03999}, 2018.
-doi: 10.48550/arXiv.1804.03999.
 
 \bibitem{karimi2020hausdorff}
 D. Karimi and S. E. Salcudean,
 ``Reducing the Hausdorff Distance in Medical Image Segmentation with Convolutional Neural Networks,''
 \emph{IEEE Transactions on Medical Imaging}, vol. 39, no. 2, pp. 499--513, 2020.
-doi: 10.1109/TMI.2019.2930068.
 
 \bibitem{shin2018synthesis}
 H.-C. Shin et al.,
 ``Medical Image Synthesis for Data Augmentation and Anonymization Using Generative Adversarial Networks,''
 in \emph{Simulation and Synthesis in Medical Imaging (SASHIMI 2018)},
 Lecture Notes in Computer Science, vol. 11037, pp. 1--11, Springer, 2018.
-doi: 10.1007/978-3-030-00536-8\_1.
 
 \end{thebibliography}
 \end{document}
-

@@ -14,11 +14,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python dependencies first (cached layer)
 COPY requirements.txt pyproject.toml ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir -r requirements.txt
 
 # Copy source code and install the package in editable mode
 COPY . .
-RUN pip install --no-cache-dir -e .
+RUN python -m pip install --no-cache-dir -e .
 
 # Default: open a shell; override with e.g.:
 #   docker run --rm medical-imaging pytest tests/ -v

@@ -56,28 +56,14 @@ def fliprot(img):
     return np.flipud(np.rot90(img))
 
 
-CORNER_SIZE = 20
+BG_ROI_Y = 250
+BG_ROI_X = 30
+BG_ROI_SIZE = 20
 
 
-def background_corner_std(img, size=CORNER_SIZE):
-    corners = np.concatenate([
-        img[:size, :size].ravel(),
-        img[:size, -size:].ravel(),
-        img[-size:, :size].ravel(),
-        img[-size:, -size:].ravel(),
-    ])
-    return float(np.std(corners))
-
-
-def central_mean(img, half=40):
-    cy, cx = img.shape[0] // 2, img.shape[1] // 2
-    return float(np.mean(img[cy - half : cy + half, cx - half : cx + half]))
-
-
-def mean_gradient_magnitude(img):
-    gy, gx = np.gradient(img)
-    grad = np.sqrt(gx**2 + gy**2)
-    return float(np.mean(grad))
+def roi_local_std(img, y=BG_ROI_Y, x=BG_ROI_X, size=BG_ROI_SIZE):
+    roi = img[y : y + size, x : x + size]
+    return float(np.std(roi))
 
 # ── Reconstruct all coils ─────────────────────────────────────────────────────
 print("Reconstructing images (ifft2 of ifftshift'd k-space)...")
@@ -231,6 +217,22 @@ for name, stack, title in method_configs:
     plt.close(fig)
     print(f"  → {fname}")
 
+print(
+    "\nRepresentative coil-0 low-signal ROI summary "
+    f"(ROI rows {BG_ROI_Y}:{BG_ROI_Y + BG_ROI_SIZE}, cols {BG_ROI_X}:{BG_ROI_X + BG_ROI_SIZE})"
+)
+print("Note: this is a simple local-variation proxy from a low-signal region, not a physical SNR estimate.")
+print(f"{'Method':<24}  {'ROI std':>14}")
+print("-" * 42)
+for name, img in {
+    "Original magnitude": magnitude_images[0],
+    f"Median {MEDIAN_SIZE}x{MEDIAN_SIZE}": median_denoised[0],
+    f"Gaussian sigma={SIGMA_GAUSS}": gauss_denoised[0],
+    "Bilateral": bilateral_denoised[0],
+}.items():
+    bg = roi_local_std(img)
+    print(f"{name:<24}  {bg:>14.5f}")
+
 # ── Butterworth filter ────────────────────────────────────────────────────────
 D0       = 30
 BW_ORDER = 2
@@ -316,9 +318,9 @@ methods_rss = {
 
 vmax_rss = rss_original.max()
 
-# Figure 1: original vs median-denoised + difference map
+# Figure 1: original vs bilateral-denoised + difference map
 print("Saving Part (c) — combined comparison (3 panels)...")
-diff_map = np.abs(rss_original - rss_median)
+diff_map = np.abs(rss_original - rss_bilateral)
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 im0 = axes[0].imshow(fliprot(rss_original), cmap="gray", vmin=0, vmax=vmax_rss)
@@ -326,37 +328,30 @@ axes[0].set_title("RSS — original", fontsize=11, fontweight="semibold")
 axes[0].axis("off")
 plt.colorbar(im0, ax=axes[0], fraction=0.046, pad=0.04)
 
-im1 = axes[1].imshow(fliprot(rss_median), cmap="gray", vmin=0, vmax=vmax_rss)
-axes[1].set_title("RSS — median denoised then combined", fontsize=11, fontweight="semibold")
+im1 = axes[1].imshow(fliprot(rss_bilateral), cmap="gray", vmin=0, vmax=vmax_rss)
+axes[1].set_title("RSS — bilateral denoised then combined", fontsize=11, fontweight="semibold")
 axes[1].axis("off")
 plt.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04)
 
 im2 = axes[2].imshow(fliprot(diff_map), cmap="hot")
-axes[2].set_title("|original − median|", fontsize=11, fontweight="semibold")
+axes[2].set_title("|original − bilateral|", fontsize=11, fontweight="semibold")
 axes[2].axis("off")
 plt.colorbar(im2, ax=axes[2], fraction=0.046, pad=0.04)
 
 plt.suptitle(
-    "Part (c): Median-filter each coil magnitude image, then combine with RSS",
+    "Part (c): Bilateral filtering on each coil magnitude image, then RSS combination",
     fontsize=12, fontweight="semibold",
 )
 plt.tight_layout()
 fig.savefig(f"{DIR_22}/part_c_combined.png", dpi=200, bbox_inches="tight")
 plt.close(fig)
 print(f"  → {DIR_22}/part_c_combined.png")
-
 print(
-    "\nFinal RSS descriptive summary "
-    f"(same four {CORNER_SIZE}x{CORNER_SIZE} corner ROIs and central 80x80 ROI as coil 0)"
+    "\nThe bilateral RSS image is used as the final denoised combined result. "
+    "The RSS comparison is kept visual only "
+    "(shared-scale images), because no single clearly isolated low-signal ROI "
+    "is available in the combined image."
 )
-print("Note: background std here is a simple denoising proxy, not a physical SNR estimate.")
-print(f"{'Method':<20}  {'Background std':>14}  {'Central mean':>13}  {'Mean grad':>11}")
-print("-" * 74)
-for name, img in methods_rss.items():
-    bg = background_corner_std(img)
-    cm = central_mean(img)
-    mg = mean_gradient_magnitude(img)
-    print(f"{name:<20}  {bg:>14.5f}  {cm:>13.5f}  {mg:>11.5f}")
 
 # Figure 2: all three methods on the combined image
 print("Saving Part (c) — all-methods comparison (4 panels)...")

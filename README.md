@@ -21,37 +21,49 @@ University of Cambridge · Submission: 23:59 Wednesday 1 April 2026
 
 **Forward projection** uses the Radon transform (`skimage.transform.radon`) to generate sinograms from a Shepp-Logan phantom or a CT chest image.
 
-**Noise model** applies Poisson noise in the transmission domain (Beer-Lambert model) followed by additive Gaussian detector noise:
+**Noise model** first normalises each clean sinogram by its maximum value, maps
+it into the transmission domain with the Beer-Lambert model, adds Gaussian
+detector noise, clips to positive intensity, then applies Poisson sampling:
 ```
-I = I₀ exp(−p),   I_noisy ~ Poisson(I + N(0,σ²)),   p_noisy = −log(I_noisy / I₀)
+I = I₀ exp(−p_norm),   I_g = I + N(0,σ²),   I_noisy ~ Poisson(max(I_g, ε)),   p_noisy = −log(I_noisy / I₀) · p_max
 ```
 
 **Filtered Backprojection (FBP)** reconstructs via `skimage.transform.iradon` with a selectable ramp filter (Ram-Lak, Shepp-Logan, Cosine, Hamming, Hann).
 
-**Gradient Descent (SIRT-style)** iteratively minimises the sinogram residual:
+**Gradient Descent (Landweber-style least squares)** iteratively minimises the
+least-squares data term:
 ```
 x_{k+1} = x_k − γ · Aᵀ(Ax_k − b)
 ```
 running for up to 200 iterations with `γ = 0.001`.
 
-**Subset GD (OS-SART-style)** splits the 360 projections into S = 10 ordered subsets and performs one update per subset per epoch, yielding S updates per epoch.
+**Subset GD** splits the 360 projections into `S = 10` interleaved subsets and
+performs one sequential update per subset per epoch. This is best thought of as
+mini-batch / ordered-subset gradient descent rather than fully normalised
+OS-SART.
 
-### Key results
+### What the Notebooks Show
 
-Exercise 1.1 evaluates dose levels I₀ ∈ {10⁵, 10³, 10²} and projection counts {360, 90, 20}:
+**Exercise 1.1** compares FBP with full-batch gradient descent across
+dose levels `I₀ ∈ {10⁵, 10³, 10²}` and view counts `{360, 90, 20}`. The
+notebooks and report figures show that gradient descent is consistently more
+robust than FBP as dose and angular sampling are reduced, while FBP remains
+competitive only in the highest-quality acquisition setting.
 
-| Condition | FBP PSNR | GD PSNR |
-|-----------|----------|---------|
-| I₀=10⁵, 360 views | **38.8 dB** | 32.8 dB |
-| I₀=10³, 360 views | 22.4 dB | **30.1 dB** |
-| I₀=10², 360 views | 12.3 dB | **23.5 dB** |
-| I₀=10², 20 views  | −0.4 dB | **17.0 dB** |
+**Exercise 1.2** fixes the number of projections at 360 and reduces the angular
+range to `{180°, 120°, 40°}`. The main effect is no longer just extra noise but
+directional blur and elongation caused by the missing wedge in Fourier space.
 
-FBP wins only at maximum dose and full sampling; GD is substantially more robust to both noise and undersampling.
+**Exercise 1.3** has two separate implementation studies:
 
-Exercise 1.2 tests angular ranges {180°, 120°, 40°} at fixed 360 projections. The missing-wedge artefact (Fourier Slice Theorem) causes directional elongation at 40°. GD retains 19.3 dB vs FBP's 13.8 dB at I₀=10⁵.
-
-Exercise 1.3 compares FBP filters at I₀=10², 360 views: ramp 12.3 dB, Shepp-Logan 14.2 dB, Hamming 20.0 dB. The early-convergence study shows subset GD reaches the 100-epoch full-batch solution quality in only 10 epochs when the per-subset step size is kept at `γ = 0.001`.
+- Part (b) compares several FBP filters on the same low-dose example. In this
+  repo, the Hamming window gives the strongest smoothing and the best scalar
+  metrics on that chosen example, while the ramp filter stays sharpest and
+  noisiest.
+- Part (c) compares full-batch GD with subset GD. With a per-subset step
+  `γ / S`, subset GD closely tracks the full-batch method; with an unscaled
+  per-subset step `γ`, it converges much faster initially but becomes unstable
+  later.
 
 ---
 
@@ -74,18 +86,19 @@ The RSS image provides more uniform spatial coverage than any individual coil.
 
 ### Denoising (Exercise 2.2)
 
-**Image-space methods** are applied to the reconstructed coil magnitude images `|I_c|`:
+**Image-space methods** are applied to the reconstructed coil magnitude images
+`|I_c|`:
 
-| Method | Parameters | Background std (coil 0) |
+| Method | Parameters | Local std (coil 0 ROI) |
 |--------|-----------|------------------------|
-| Original | — | 0.052 |
-| Median filter | 3 × 3 window | 0.033 |
-| Gaussian filter | σ = 1.0 px | 0.028 |
-| Bilateral filter | σ_spatial = 3.0 px, σ_color = 0.05 | 0.029 |
+| Original | — | 0.038 |
+| Median filter | 3 × 3 window | 0.016 |
+| Gaussian filter | σ = 1.0 px | 0.011 |
+| Bilateral filter | σ_spatial = 3.0 px, σ_color = 0.05 | 0.004 |
 
-Background std is measured from four 20 × 20 corner ROIs — a smoothing proxy, not a physical SNR. Central-region mean is preserved by all three filters (< 0.4% change), confirming no signal suppression in the anatomy.
+The numeric comparison is deliberately simple: local standard deviation is measured on one fixed 20 × 20 low-signal ROI in representative coil 0 (rows `250:270`, cols `30:50`). This is a local smoothing proxy, not a physical SNR estimate.
 
-Gaussian gives the strongest uniform smoothing. On the final RSS-combined images, Gaussian-then-RSS gives the lowest corner-ROI background standard deviation, median-then-RSS gives a milder reduction, and bilateral-then-RSS retains a higher mean gradient but does not reduce this background proxy relative to the original RSS image. These are descriptive image statistics rather than ground-truth quality metrics.
+Visual inspection across all coils remains the main comparison. Gaussian gives the strongest broad smoothing but also the most blur; median is more moderate; bilateral preserves boundaries better and, in the selected low-signal ROI, gives the lowest local variation. For the final RSS-combined images, the comparison is kept visual on a shared scale rather than relying on a potentially misleading single global metric.
 
 **Butterworth k-space filter** (Exercise 2.2, Part b) applied to the original noisy k-space of coil 0:
 ```
@@ -93,7 +106,11 @@ H(u,v) = 1 / (1 + (D(u,v) / D₀)^{2n}),   D₀ = 30 px,   n = 2
 ```
 where `u, v` are pixel offsets from the k-space centre. The mask is multiplied directly with the centred k-space (no additional shift needed); reconstruction then uses `ifft2(ifftshift(·))`. The filter passes H = 1.0 at the centre, H = 0.5 at D = 30 px, and H ≈ 0.0005 at the corners. Unlike image-space methods, the filter operates on the complex signal before magnitude formation, so both magnitude and phase of the reconstruction are affected.
 
-**Denoise-then-combine** (Exercise 2.2, Part c): each of the three image-space methods is applied to all six coil magnitude images independently before RSS combination, keeping the per-coil noise suppression separate from the nonlinear combination step.
+**Denoise-then-combine** (Exercise 2.2, Part c): each of the three image-space
+methods is applied to all six coil magnitude images independently before RSS
+combination. The final combined image highlighted in the report uses the
+bilateral filter, with the median and Gaussian pipelines retained for visual
+comparison.
 
 ---
 
@@ -112,17 +129,18 @@ where `u, v` are pixel offsets from the k-space centre. The mask is multiplied d
 │   ├── butterworth_filter.py   # Butterworth low-pass k-space mask
 │   └── kspace_visualization.py # k-space and image plotting helpers
 │
-├── tests/
-│   └── test_mri.py             # 30 unit tests for the MRI module
+├── tests/                      # Unit tests for CT and MRI support code
+├── docs/                       # Sphinx configuration and API reference
 │
 ├── notebooks/                  # Exercise notebooks, export scripts, and report_figures/
 │
-├── .github/workflows/ci.yml    # GitHub Actions CI (lint + test)
+├── .github/workflows/ci.yml    # GitHub Actions CI (lint + test + docs)
+├── Makefile                    # Convenience targets for lint/test/docs
 ├── pyproject.toml              # Project metadata and tool configuration
 ├── requirements.txt            # Pinned runtime dependencies
 ├── requirements-notebooks.txt  # Jupyter/notebook extras
 ├── Dockerfile                  # Reproducible container environment
-├── report.txt                  # Coursework report source
+├── report.txt                  # LaTeX coursework report source
 ├── CONTRIBUTING.md
 └── LICENSE
 ```
@@ -137,15 +155,17 @@ where `u, v` are pixel offsets from the k-space centre. The mask is multiplied d
 python3.10 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
-pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
-pip install -e .
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -r requirements.txt
+python -m pip install -e .
 ```
 
-Optional notebook support:
+Optional development, docs, and notebook support:
 
 ```bash
-pip install -r requirements-notebooks.txt
+python -m pip install -e ".[dev]"
+python -m pip install -e ".[docs]"
+python -m pip install -r requirements-notebooks.txt
 ```
 
 ### Option 2 — Docker
@@ -161,11 +181,12 @@ docker run --rm -it medical-imaging bash           # interactive shell
 ## Running the notebooks
 
 ```bash
-pip install -r requirements-notebooks.txt
+python -m pip install -r requirements-notebooks.txt
 jupyter lab
 ```
 
-Open the relevant notebook under `notebooks/`. Report figures are stored under `notebooks/report_figures/`.
+Open the relevant notebook under `notebooks/`. Report figures are written under
+`notebooks/report_figures/`.
 
 For reproducible report-figure export, helper scripts are provided:
 
@@ -176,16 +197,38 @@ cd notebooks
 ../.venv/bin/python save_ex21_ex22_figures.py
 ```
 
-Exercise 1.3 and Exercise 2.1/2.2 also include in-notebook figure-saving helpers that write under `notebooks/report_figures/` when the relevant cells are run.
+Exercise 1.3 and Exercise 2.1/2.2 also include in-notebook figure-saving
+helpers that write under `notebooks/report_figures/` when the relevant cells are
+run.
 
 ---
 
 ## Running the tests
 
 ```bash
-pytest tests/ -v                          # all 30 MRI tests
-pytest tests/ --cov=mri_denoising --cov-report=term-missing
+pytest tests/ -v                          # full CT + MRI test suite
+pytest tests/ --cov=ct_reconstruction --cov=mri_denoising --cov-report=term-missing
 ```
+
+Convenience targets are also provided:
+
+```bash
+make lint
+make test
+make coverage
+```
+
+## Building the API docs
+
+The support-library modules use NumPy-style docstrings and can be built with
+Sphinx:
+
+```bash
+python -m pip install -e ".[docs]"
+make docs
+```
+
+The generated HTML documentation is written to `docs/_build/html/`.
 
 ---
 
@@ -206,6 +249,18 @@ Verified with: Python 3.10.5 · numpy 2.2.6 · scipy 1.15.3 · scikit-image 0.25
 
 ---
 
-## Module 3 note
+## Use of AI
 
-All written content in `report.txt` for the literature-review section is original student work. Generative AI was not used for that section per the coursework specification.
+AI was used to support the implementation of the code in this repository, based on my own logic, design choices, and understanding of the coursework tasks. In particular, it was used to help implement functions from my planned approach, improve documentation through Markdown text and docstrings, and assist with debugging during development.
+
+For Module 3, I found the articles myself, read them, analysed them, and wrote my own conclusions and views. AI was not used to generate the literature-review content and was only used to help check grammar.
+
+---
+
+## Development workflow
+
+- Create feature branches for new work instead of committing directly to `main`.
+- Install local hooks with `pre-commit install` and
+  `pre-commit install --hook-type pre-push`.
+- GitHub Actions validates linting, formatting, tests, and docs on pushes and
+  pull requests targeting `main`.

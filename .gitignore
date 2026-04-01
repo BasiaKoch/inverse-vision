@@ -18,9 +18,12 @@ pip-wheel-metadata/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.pre-commit-cache/
 .coverage
 .coverage.*
 htmlcov/
+docs/_build/
+.mplconfig/
 
 # Editor settings
 .idea/
