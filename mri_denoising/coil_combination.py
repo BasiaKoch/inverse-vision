@@ -85,8 +85,9 @@ def combine_coils_rss(coil_images: np.ndarray, coil_axis: int = 0) -> np.ndarray
     """
     Combine multi-coil images using Root Sum of Squares (RSS).
 
-    RSS formula:
-        combined(x,y) = sqrt( sum_i \|coil_i(x,y)\|^2 )
+    RSS formula::
+
+        combined(x,y) = sqrt( sum_i |coil_i(x,y)|^2 )
 
     Parameters
     ----------

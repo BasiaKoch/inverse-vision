@@ -6,8 +6,8 @@ Run with:
 """
 
 import numpy as np
-from PIL import Image
 import pytest
+from PIL import Image
 
 from ct_reconstruction.phantom import load_ct_image, load_shepp_logan
 
