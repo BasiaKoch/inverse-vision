@@ -51,6 +51,6 @@ python -m sphinx -W -b html docs docs/_build/html
 
 ## Module 3 note
 
-All written content in `report.txt` for the literature review section
+All written content in `report/report.txt` for the literature review section
 must be original student work.  Generative AI must not be used for that
 section per the coursework specification.

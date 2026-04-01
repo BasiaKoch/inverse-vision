@@ -140,7 +140,9 @@ comparison.
 ├── requirements.txt            # Pinned runtime dependencies
 ├── requirements-notebooks.txt  # Jupyter/notebook extras
 ├── Dockerfile                  # Reproducible container environment
-├── report.txt                  # LaTeX coursework report source
+├── report/                     # Report source and submission PDF
+│   ├── report.txt              # LaTeX coursework report source
+│   └── report.pdf              # Final submission PDF
 ├── CONTRIBUTING.md
 └── LICENSE
 ```
