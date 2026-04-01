@@ -596,7 +596,6 @@ After RSS combination, the final image becomes more balanced and the anatomy is
 visible across the full knee.
 Although some intensity variation remains, the RSS image provides the clearest
 overall representation of the dataset.
-\FloatBarrier
 \section{Exercise 2.2, Image-Space Denoising and k-Space Filtering}
 
 % ── Part (a) ────────────────────────────────────────────────────────────────

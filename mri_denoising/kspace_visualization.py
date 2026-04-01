@@ -18,7 +18,7 @@ def plot_kspace_magnitude(
     """
     Plot the log-magnitude of k-space for every coil.
 
-    Uses np.log1p(|kspace|) so that both weak and strong frequency
+    Uses ``np.log1p(|kspace|)`` so that both weak and strong frequency
     components are visible simultaneously.
 
     Parameters
