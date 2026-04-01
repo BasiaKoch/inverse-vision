@@ -1,8 +1,4 @@
 # Data Science in Medical Imaging — Coursework
-
-MPhil in Data Intensive Science · Coursework Minor A2
-University of Cambridge · Submission: 23:59 Wednesday 1 April 2026
-
 ---
 
 ## What this repository implements
@@ -11,7 +7,7 @@ University of Cambridge · Submission: 23:59 Wednesday 1 April 2026
 |--------|-------|----------|
 | 1 | CT tomographic reconstruction (dose reduction, limited-angle, FBP filters, iterative methods) | `notebooks/exercise_1.1.ipynb`, `notebooks/exercise_1.2.ipynb`, `notebooks/exercise_1.3.ipynb` |
 | 2 | MRI k-space visualisation, reconstruction, and denoising | `notebooks/exercise_2.1_2.2.ipynb` |
-| 3 | Image segmentation literature review | Written report only — no AI |
+| 3 | Image segmentation literature review |
 
 ---
 
