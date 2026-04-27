@@ -281,34 +281,129 @@ notes(s, """Starting with Module 1: CT Reconstruction.
 This module has three exercises: 1.1 — dose reduction study comparing FBP vs Gradient Descent; 1.2 — limited-angle tomography; 1.3 — FBP filter comparison and subset GD analysis.
 The overarching question: how do different acquisition constraints affect reconstruction quality, and which algorithm handles them best?""")
 
-# ── 4. CT PROBLEM SETUP ──────────────────────────────────────────────────────
+# ── 4. CT PROBLEM SETUP — flow diagram ──────────────────────────────────────
 s = content_slide(CT, "CT: The Forward Model",
-                  "X-ray projections through tissue  →  sinogram  →  reconstruct attenuation image")
-bullets = [
-    "Phantom: 512×512 chest CT, masked to circular FOV",
-    "Parallel-beam CT: angles sampled uniformly over [0°, 180°]",
-    "Beer–Lambert law:  I = I₀ exp(−Ax)",
-    "Gaussian detector noise σ = 0.05 + Poisson photon noise",
-    "Noisy log-sinogram: b = −log(I_noisy / I₀) · p_max",
-    "Inverse problem:  min ‖Ax − b‖²",
+                  "Acquisition pipeline  →  noisy sinogram  →  two reconstruction algorithms")
+
+# ── helper: arrow between boxes ──────────────────────────────────────────────
+def arrow(slide, x, y, length=Inches(0.38)):
+    """Draw a simple horizontal arrow (line + arrowhead triangle)."""
+    from pptx.util import Pt
+    lw = Inches(0.28)
+    lh = Inches(0.04)
+    # shaft
+    box(slide, x, y + Inches(0.14), lw, lh, GRAY)
+    # arrowhead (small filled triangle via a thin tall box)
+    ah_w = Inches(0.10)
+    ah_h = Inches(0.32)
+    box(slide, x + lw, y + Inches(0.0), ah_w, ah_h, GRAY)
+
+# ── Row 1: forward acquisition pipeline ──────────────────────────────────────
+BW = Inches(1.78)   # box width
+BH = Inches(1.30)   # box height
+AW = Inches(0.38)   # arrow gap
+MARGIN = Inches(0.28)
+ROW1_Y = Inches(1.35)
+STEP_X = BW + AW
+
+fwd_boxes = [
+    ("CT Phantom", "512×512\ncircular FOV"),
+    ("Radon\nTransform", "p = Ax"),
+    ("Normalise", "p̃ = p / p_max"),
+    ("Beer–Lambert", "I = I₀ exp(−p̃)"),
+    ("Add Noise", "Gaussian σ=0.05\n+ Poisson"),
+    ("Noisy\nSinogram", "b = −log(I_noisy/I₀)·p_max"),
 ]
-for i, b in enumerate(bullets):
-    txt(s, "•  " + b, Inches(0.35), Inches(1.25 + i * 0.83), Inches(6.1), Inches(0.78), size=14, color=GRAY)
-box(s, Inches(0.35), Inches(6.35), Inches(6.1), Inches(0.72), CT_L)
-txt(s, "9 conditions: I₀ ∈ {10⁵, 10³, 10²}  ×  n ∈ {360, 90, 20}",
-    Inches(0.45), Inches(6.40), Inches(5.9), Inches(0.62),
-    size=16, color=CT, italic=True, align=PP_ALIGN.CENTER)
-pic(s, F11 + "/figure3a_sinograms_gaussian_only.png", Inches(6.5), Inches(1.15), Inches(6.65), Inches(5.95))
-txt(s, "Sinograms with Gaussian noise only  (all 9 conditions)  —  Fig. 1 in report",
-    Inches(6.5), Inches(7.1), Inches(6.65), Inches(0.35),
-    size=11, color=GRAY, italic=True, align=PP_ALIGN.CENTER)
+
+n_fwd = len(fwd_boxes)
+total_fwd = n_fwd * BW + (n_fwd - 1) * AW
+x0 = (Inches(13.33) - total_fwd) / 2
+
+for i, (title, sub) in enumerate(fwd_boxes):
+    bx = x0 + i * STEP_X
+    # highlight first (phantom) and last (sinogram) in CT blue; rest light
+    bg = CT if i in (0, n_fwd - 1) else CT_L
+    tc = WHITE if i in (0, n_fwd - 1) else CT
+    box(s, bx, ROW1_Y, BW, BH, bg, border=(bg == CT_L))
+    txt(s, title, bx + Inches(0.06), ROW1_Y + Inches(0.10),
+        BW - Inches(0.12), Inches(0.42),
+        size=13, color=tc, bold=True, align=PP_ALIGN.CENTER)
+    txt(s, sub, bx + Inches(0.06), ROW1_Y + Inches(0.52),
+        BW - Inches(0.12), Inches(0.70),
+        size=11, color=tc, align=PP_ALIGN.CENTER)
+    # arrow to next box
+    if i < n_fwd - 1:
+        ax = bx + BW
+        ay = ROW1_Y + BH / 2 - Inches(0.16)
+        box(s, ax, ay + Inches(0.14), Inches(0.28), Inches(0.04), GRAY)
+        box(s, ax + Inches(0.28), ay, Inches(0.10), Inches(0.32), GRAY)
+
+# ── Label above Row 1 ────────────────────────────────────────────────────────
+txt(s, "FORWARD MODEL  (data acquisition)",
+    x0, Inches(1.08), total_fwd, Inches(0.24),
+    size=11, color=CT, bold=True, align=PP_ALIGN.CENTER)
+
+# ── Divider line ─────────────────────────────────────────────────────────────
+box(s, Inches(0.40), Inches(2.82), Inches(12.53), int(Pt(1.2)), LGRAY)
+
+# ── Row 2: inverse reconstruction ────────────────────────────────────────────
+RBW = Inches(3.20)
+RBH = Inches(1.40)
+ROW2_Y = Inches(3.00)
+RAW = Inches(0.50)
+
+inv_boxes = [
+    ("Noisy Sinogram  b", "observed data\nn angles × detectors"),
+    ("FBP  (Ram-Lak)", "non-iterative\nbackprojection"),
+    ("Gradient Descent", "200 iterations\nmin ‖Ax − b‖²"),
+]
+
+n_inv = len(inv_boxes)
+total_inv = n_inv * RBW + (n_inv - 1) * RAW
+x0r = (Inches(13.33) - total_inv) / 2
+RSTEP = RBW + RAW
+
+for i, (title, sub) in enumerate(inv_boxes):
+    bx = x0r + i * RSTEP
+    bg = CT if i == 0 else (CT_L if i == 1 else RGBColor(0xe8, 0xf5, 0xe9))
+    tc = WHITE if i == 0 else CT
+    bc = (i == 1 or i == 2)
+    box(s, bx, ROW2_Y, RBW, RBH, bg, border=bc)
+    txt(s, title, bx + Inches(0.08), ROW2_Y + Inches(0.12),
+        RBW - Inches(0.16), Inches(0.46),
+        size=14, color=tc, bold=True, align=PP_ALIGN.CENTER)
+    txt(s, sub, bx + Inches(0.08), ROW2_Y + Inches(0.60),
+        RBW - Inches(0.16), Inches(0.72),
+        size=12, color=tc if i == 0 else GRAY, align=PP_ALIGN.CENTER)
+    if i < n_inv - 1:
+        ax = bx + RBW
+        ay = ROW2_Y + RBH / 2 - Inches(0.16)
+        box(s, ax, ay + Inches(0.14), Inches(0.38), Inches(0.04), GRAY)
+        box(s, ax + Inches(0.38), ay, Inches(0.12), Inches(0.32), GRAY)
+
+txt(s, "INVERSE PROBLEM  (reconstruction)",
+    x0r, Inches(2.75), total_inv, Inches(0.24),
+    size=11, color=CT, bold=True, align=PP_ALIGN.CENTER)
+
+# ── Parameters box at bottom ──────────────────────────────────────────────────
+box(s, Inches(1.50), Inches(4.62), Inches(10.33), Inches(0.72), CT_L)
+txt(s, "9 experimental conditions:  I₀ ∈ {10⁵, 10³, 10²}  ×  n ∈ {360, 90, 20} angles",
+    Inches(1.60), Inches(4.67), Inches(10.13), Inches(0.62),
+    size=15, color=CT, bold=False, italic=True, align=PP_ALIGN.CENTER)
+
+# ── Noise annotation ─────────────────────────────────────────────────────────
+txt(s, "I₀ controls photon count → higher I₀ = lower Poisson noise\n"
+       "Low I₀=10² → severe noise; High I₀=10⁵ → near-clean",
+    Inches(1.50), Inches(5.45), Inches(10.33), Inches(0.72),
+    size=12, color=GRAY, align=PP_ALIGN.CENTER)
+
 notes(s, """What I actually did:
-— Loaded the 512×512 chest CT phantom and masked it to the inscribed circle so only the reliably reconstructable region is kept.
+— Loaded the 512×512 chest CT phantom and masked it to the inscribed circle so only the reliably reconstructable region is kept (circular FOV).
 — Simulated parallel-beam CT with the Radon transform. Angles are uniformly spaced over [0°, 180°].
 — Added noise in two steps: first Gaussian detector noise (σ=0.05) to model electronic noise, then Poisson sampling to model photon-counting statistics. This two-step model is more realistic than Poisson alone.
-— Converted noisy transmission counts back to projection values using the log transform — that's the sinogram we try to invert.
+— Converted noisy transmission counts back to projection values using the log transform — that's the sinogram b we try to invert.
 — I₀ controls how many photons hit the detector: high I₀=10⁵ means low noise; low I₀=10² means heavy noise.
-The image on the right shows the Gaussian-noise-only sinograms (Fig. 1 in the report) — an auxiliary diagnostic to isolate the detector noise term before adding Poisson photon noise. This gives the audience a first look at what sinograms are before the full noisy versions appear on the next slide.""")
+Two reconstruction algorithms are compared: FBP with Ram-Lak filter (analytic, fast, no iterations) vs Gradient Descent (iterative, 200 steps, minimises ‖Ax−b‖²).""")
 
 # ── 4b. GAUSSIAN-NOISE-ONLY SINOGRAMS (Fig. 1) ──────────────────────────────
 s = content_slide(CT, "Sinograms with Gaussian Noise Only  (Fig. 1)",
